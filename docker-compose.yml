@@ -1,0 +1,234 @@
+version: '3.9'
+
+services:
+  # ─────────────────────────────────────────────
+  # PostgreSQL + PostGIS
+  # ─────────────────────────────────────────────
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: minegis_db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-minegis_ts}
+      POSTGRES_USER: ${DB_USER:-minegis_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-MineGIS_DB_2026!}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-minegis_user} -d ${DB_NAME:-minegis_ts}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────────
+  # Redis (Django Channels + Celery broker)
+  # ─────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: minegis_redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────────
+  # GeoServer (WMS/WFS spatial data server)
+  # ─────────────────────────────────────────────
+  geoserver:
+    image: docker.osgeo.org/geoserver:2.25.1
+    container_name: minegis_geoserver
+    environment:
+      GEOSERVER_ADMIN_USER: ${GEOSERVER_ADMIN_USER:-admin}
+      GEOSERVER_ADMIN_PASSWORD: ${GEOSERVER_ADMIN_PASSWORD:-MineGIS_GS_2026!}
+      GEOSERVER_DATA_DIR: /opt/geoserver_data
+      INSTALL_EXTENSIONS: "true"
+      STABLE_EXTENSIONS: "ysld,feature-pregeneralized"
+      SKIP_DEMO_DATA: "true"
+      JAVA_OPTS: >-
+        -Xms512m -Xmx1536m
+        -XX:+UseG1GC
+        -Dgeoserver.csrf.disabled=true
+    volumes:
+      - geoserver_data:/opt/geoserver_data
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/geoserver/web/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────────
+  # Django Backend (Daphne ASGI)
+  # ─────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: minegis_backend
+    entrypoint: ["/app/scripts/entrypoint.sh"]
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-secret-key-change-in-prod}
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-True}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,backend}
+      DJANGO_SETTINGS_MODULE: config.settings.development
+      DB_NAME: ${DB_NAME:-minegis_ts}
+      DB_USER: ${DB_USER:-minegis_user}
+      DB_PASSWORD: ${DB_PASSWORD:-MineGIS_DB_2026!}
+      DB_HOST: db
+      DB_PORT: 5432
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      GEOSERVER_URL: http://geoserver:8080/geoserver
+      GEOSERVER_ADMIN_USER: ${GEOSERVER_ADMIN_USER:-admin}
+      GEOSERVER_ADMIN_PASSWORD: ${GEOSERVER_ADMIN_PASSWORD:-MineGIS_GS_2026!}
+      GEOSERVER_WORKSPACE: ${GEOSERVER_WORKSPACE:-minegis_ts}
+      NETRADYNE_API_URL: ${NETRADYNE_API_URL:-https://api.netradyne.com}
+      NETRADYNE_API_KEY: ${NETRADYNE_API_KEY:-}
+      NETRADYNE_WEBHOOK_SECRET: ${NETRADYNE_WEBHOOK_SECRET:-}
+      NETRADYNE_MOCK_MODE: ${NETRADYNE_MOCK_MODE:-true}
+      JWT_ACCESS_TOKEN_LIFETIME_MINUTES: ${JWT_ACCESS_TOKEN_LIFETIME_MINUTES:-60}
+      JWT_REFRESH_TOKEN_LIFETIME_DAYS: ${JWT_REFRESH_TOKEN_LIFETIME_DAYS:-7}
+      EMAIL_HOST: ${EMAIL_HOST:-localhost}
+      EMAIL_PORT: ${EMAIL_PORT:-25}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-False}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-minegis@mines.telangana.gov.in}
+      VEHICLE_SYNC_INTERVAL_SECONDS: ${VEHICLE_SYNC_INTERVAL_SECONDS:-30}
+    volumes:
+      - ./backend:/app
+      - backend_static:/app/staticfiles
+      - backend_media:/app/media
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      geoserver:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────────
+  # Celery Worker
+  # ─────────────────────────────────────────────
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: minegis_celery_worker
+    command: celery -A config worker -l info -Q default,vehicle_tracking
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.development
+      DB_NAME: ${DB_NAME:-minegis_ts}
+      DB_USER: ${DB_USER:-minegis_user}
+      DB_PASSWORD: ${DB_PASSWORD:-MineGIS_DB_2026!}
+      DB_HOST: db
+      DB_PORT: 5432
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      GEOSERVER_URL: http://geoserver:8080/geoserver
+      NETRADYNE_API_URL: ${NETRADYNE_API_URL:-https://api.netradyne.com}
+      NETRADYNE_API_KEY: ${NETRADYNE_API_KEY:-}
+      NETRADYNE_MOCK_MODE: ${NETRADYNE_MOCK_MODE:-true}
+      VEHICLE_SYNC_INTERVAL_SECONDS: ${VEHICLE_SYNC_INTERVAL_SECONDS:-30}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-secret-key-change-in-prod}
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────────
+  # Celery Beat (scheduler for periodic tasks)
+  # ─────────────────────────────────────────────
+  celery_beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: minegis_celery_beat
+    command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.development
+      DB_NAME: ${DB_NAME:-minegis_ts}
+      DB_USER: ${DB_USER:-minegis_user}
+      DB_PASSWORD: ${DB_PASSWORD:-MineGIS_DB_2026!}
+      DB_HOST: db
+      DB_PORT: 5432
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      NETRADYNE_MOCK_MODE: ${NETRADYNE_MOCK_MODE:-true}
+      VEHICLE_SYNC_INTERVAL_SECONDS: ${VEHICLE_SYNC_INTERVAL_SECONDS:-30}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-secret-key-change-in-prod}
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────────
+  # Frontend (Vite dev server)
+  # ─────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: minegis_frontend
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/api}
+      VITE_WS_URL: ${VITE_WS_URL:-ws://localhost:8000/ws}
+      VITE_GEOSERVER_URL: ${VITE_GEOSERVER_URL:-http://localhost:8080/geoserver}
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────────
+  # Nginx Reverse Proxy
+  # ─────────────────────────────────────────────
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: minegis_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - backend_static:/staticfiles:ro
+      - backend_media:/media:ro
+    depends_on:
+      - backend
+      - frontend
+      - geoserver
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  geoserver_data:
+  backend_static:
+  backend_media:
+
+networks:
+  default:
+    name: minegis_network

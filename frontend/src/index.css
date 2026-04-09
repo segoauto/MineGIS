@@ -1,0 +1,147 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base resets ──────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── OpenLayers overrides ──────────────────────────────────── */
+.ol-viewport { outline: none; }
+
+.ol-zoom {
+  top: auto !important;
+  bottom: 2.5rem !important;
+  right: 0.75rem !important;
+  left: auto !important;
+  background: rgba(30, 41, 59, 0.95) !important;
+  border: 1px solid #334155 !important;
+  border-radius: 0.5rem !important;
+  padding: 0.25rem !important;
+  backdrop-filter: blur(8px);
+}
+
+.ol-zoom button {
+  background: transparent !important;
+  color: #94A3B8 !important;
+  font-size: 1.1rem !important;
+  width: 1.75rem !important;
+  height: 1.75rem !important;
+  border-radius: 0.35rem !important;
+  margin: 0.1rem 0 !important;
+  transition: all 0.15s;
+}
+
+.ol-zoom button:hover {
+  background: #334155 !important;
+  color: #F1F5F9 !important;
+}
+
+.ol-scale-bar {
+  bottom: 2rem !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  background: rgba(30, 41, 59, 0.85) !important;
+  border: 1px solid #334155 !important;
+  border-radius: 4px !important;
+  padding: 2px 6px !important;
+  backdrop-filter: blur(4px);
+}
+
+.ol-scale-line { background: transparent !important; }
+.ol-scale-line-inner { border-color: #94A3B8 !important; color: #94A3B8 !important; font-size: 11px !important; }
+
+.ol-mouse-position {
+  top: auto !important;
+  bottom: 0.5rem !important;
+  right: 0.75rem !important;
+  background: rgba(30, 41, 59, 0.9) !important;
+  color: #94A3B8 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 11px !important;
+  padding: 3px 8px !important;
+  border-radius: 4px !important;
+  border: 1px solid #334155 !important;
+  backdrop-filter: blur(4px);
+}
+
+.ol-attribution {
+  bottom: 0 !important;
+  right: 0 !important;
+  background: rgba(15, 23, 42, 0.7) !important;
+  color: #64748B !important;
+  font-size: 10px !important;
+  border-radius: 4px 0 0 0 !important;
+}
+
+.ol-attribution a { color: #94A3B8 !important; }
+
+.ol-full-screen {
+  top: auto !important;
+  bottom: 6rem !important;
+  right: 0.75rem !important;
+  left: auto !important;
+  background: rgba(30, 41, 59, 0.95) !important;
+  border: 1px solid #334155 !important;
+  border-radius: 0.5rem !important;
+  backdrop-filter: blur(8px);
+}
+
+.ol-full-screen button {
+  background: transparent !important;
+  color: #94A3B8 !important;
+  width: 1.75rem !important;
+  height: 1.75rem !important;
+  border-radius: 0.35rem !important;
+}
+
+.ol-full-screen button:hover {
+  background: #334155 !important;
+  color: #F1F5F9 !important;
+}
+
+.ol-overviewmap {
+  bottom: 0.5rem !important;
+  left: 0.75rem !important;
+  background: rgba(30, 41, 59, 0.95) !important;
+  border: 1px solid #334155 !important;
+  border-radius: 0.5rem !important;
+  backdrop-filter: blur(8px);
+}
+
+.ol-overviewmap button {
+  background: transparent !important;
+  color: #94A3B8 !important;
+}
+
+/* ─── Custom scrollbar ──────────────────────────────────────── */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 2px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* ─── Range input styling ───────────────────────────────────── */
+input[type='range'] { -webkit-appearance: none; cursor: pointer; height: 4px; }
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: #3278C9;
+  cursor: pointer;
+  border: 2px solid #1E293B;
+}
+
+/* ─── Selection styles ──────────────────────────────────────── */
+::selection { background: rgba(50, 120, 201, 0.3); }
