@@ -41,6 +41,10 @@ class MineGISTokenObtainPairSerializer(TokenObtainPairSerializer):
     """Custom JWT serializer that includes user info in response."""
 
     def validate(self, attrs: dict) -> dict:
+        # Normalize username to avoid mobile keyboard auto-capitalize / trailing spaces
+        if 'username' in attrs and type(attrs['username']) == str:
+            attrs['username'] = attrs['username'].strip().lower()
+            
         data = super().validate(attrs)
         user = self.user
         data['user'] = UserSerializer(user).data
