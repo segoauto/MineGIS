@@ -4,24 +4,90 @@ import { useWebSocket } from '../../hooks/useWebSocket'
 import { useMapStore } from '../../store'
 import VehicleOverlays from './VehicleOverlays'
 import { vehiclesApi } from '../../api/vehicles'
+import Draw from 'ol/interaction/Draw'
+import VectorLayer from 'ol/layer/Vector'
+import VectorSource from 'ol/source/Vector'
+import GeoJSON from 'ol/format/GeoJSON'
+import { Style, Fill, Stroke } from 'ol/style'
 
 export default function MapView() {
   const containerRef = useRef<HTMLDivElement>(null)
   const { initMap, mapRef, updateTripLayer, clearTripLayer, flyTo } = useMap(containerRef)
   const [mapReady, setMapReady] = useState(false)
+  const drawRef = useRef<Draw | null>(null)
+  const drawSourceRef = useRef<VectorSource>(new VectorSource())
+  const drawLayerRef = useRef<VectorLayer<VectorSource>>(new VectorLayer({
+    source: drawSourceRef.current,
+    style: new Style({
+      fill: new Fill({ color: 'rgba(16, 185, 129, 0.15)' }),
+      stroke: new Stroke({ color: '#10B981', width: 2.5, lineDash: [6, 3] }),
+    }),
+    zIndex: 200,
+  }))
 
   // Initialize WebSocket (lives at map level to survive tab switches)
   useWebSocket()
 
-  const { cursorCoords, selectedVehicleId, vehicles, selectedLeaseData } = useMapStore()
+  const {
+    cursorCoords, selectedVehicleId, vehicles, selectedLeaseData,
+    drawBoundaryMode, setDrawBoundaryMode, openLeaseCreateForm,
+  } = useMapStore()
 
   useEffect(() => {
     const cleanup = initMap()
     if (mapRef.current) {
+      mapRef.current.addLayer(drawLayerRef.current)
       setMapReady(true)
     }
     return cleanup
   }, [initMap, mapRef])
+
+  // ── Draw Boundary Interaction ──────────────────────────────────────────────
+  useEffect(() => {
+    if (!mapRef.current || !mapReady) return
+    const map = mapRef.current
+
+    if (drawBoundaryMode) {
+      drawSourceRef.current.clear()
+      const draw = new Draw({
+        source: drawSourceRef.current,
+        type: 'Polygon',
+        freehandCondition: () => false,
+        style: new Style({
+          fill: new Fill({ color: 'rgba(16, 185, 129, 0.15)' }),
+          stroke: new Stroke({ color: '#10B981', width: 2.5, lineDash: [4, 4] }),
+        }),
+      })
+
+      draw.on('drawend', (evt) => {
+        const format = new GeoJSON()
+        const geojson = format.writeGeometryObject(evt.feature.getGeometry()!, {
+          dataProjection: 'EPSG:4326',
+          featureProjection: 'EPSG:3857',
+        })
+        // Open lease form with drawn boundary
+        openLeaseCreateForm(geojson as object)
+      })
+
+      map.addInteraction(draw)
+      drawRef.current = draw
+
+      // Esc to cancel
+      const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          setDrawBoundaryMode(false)
+        }
+      }
+      window.addEventListener('keydown', onKeyDown)
+
+      return () => {
+        map.removeInteraction(draw)
+        drawRef.current = null
+        drawSourceRef.current.clear()
+        window.removeEventListener('keydown', onKeyDown)
+      }
+    }
+  }, [drawBoundaryMode, mapReady, mapRef, openLeaseCreateForm, setDrawBoundaryMode])
 
   // Track history line drawing
   useEffect(() => {
@@ -71,7 +137,7 @@ export default function MapView() {
         ref={containerRef}
         id="ol-map"
         className="w-full h-full"
-        style={{ background: '#0F172A' }}
+        style={{ background: '#0F172A', cursor: drawBoundaryMode ? 'crosshair' : undefined }}
       />
       
       {mapReady && mapRef.current && (

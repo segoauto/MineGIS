@@ -13,6 +13,7 @@ import SpatialToolbar from './components/ui/SpatialToolbar'
 import TemporalSlider from './components/ui/TemporalSlider'
 import ComplianceReportModal from './components/reports/ComplianceReportModal'
 import { authApi } from './api/auth'
+import LeaseFormPanel from './components/panels/LeaseFormPanel'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -65,6 +66,9 @@ function MainApp() {
 
         {/* Vehicle tracking panel (bottom, resizable) */}
         <VehicleTrackingPanel />
+
+        {/* Lease form panel (right side, slide-in) */}
+        <LeaseFormPanel />
 
         {/* Global modals */}
         <ComplianceReportModal 

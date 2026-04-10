@@ -14,6 +14,26 @@ export interface LeaseFilters {
   page_size?: number
 }
 
+export interface LeasePayload {
+  mine_name: string
+  mineral_type: string
+  leaseholder_name: string
+  leaseholder_contact?: string
+  leaseholder_email?: string
+  district: string
+  mandal?: string
+  village?: string
+  survey_number?: string
+  area_hectares: number
+  grant_date: string
+  commencement_date: string
+  valid_from: string
+  valid_till: string
+  status: string
+  boundary_geojson?: object | null
+  royalty_due?: number
+}
+
 export const leasesApi = {
   async list(filters: LeaseFilters = {}): Promise<PaginatedResponse<MiningLease>> {
     const { data } = await apiClient.get<PaginatedResponse<MiningLease>>('/leases/', {
@@ -25,6 +45,20 @@ export const leasesApi = {
   async get(id: number | string): Promise<MiningLease> {
     const { data } = await apiClient.get<MiningLease>(`/leases/${id}/`)
     return data
+  },
+
+  async create(payload: LeasePayload): Promise<MiningLease> {
+    const { data } = await apiClient.post<MiningLease>('/leases/', payload)
+    return data
+  },
+
+  async update(id: number | string, payload: Partial<LeasePayload>): Promise<MiningLease> {
+    const { data } = await apiClient.patch<MiningLease>(`/leases/${id}/`, payload)
+    return data
+  },
+
+  async delete(id: number | string): Promise<void> {
+    await apiClient.delete(`/leases/${id}/`)
   },
 
   async getGeoJSON(id: number | string): Promise<GeoJSONFeatureCollection> {
@@ -59,3 +93,4 @@ export const leasesApi = {
     return data
   },
 }
+

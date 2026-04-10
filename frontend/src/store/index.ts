@@ -45,6 +45,12 @@ interface MapStore {
   vehicleAlerts: VehicleAlert[]
   unreadAlertCount: number
 
+  // ─── Draw / Lease Form state ──────────────────────────────
+  drawBoundaryMode: boolean
+  drawnBoundaryGeoJSON: object | null
+  leaseFormOpen: boolean
+  leaseFormEditId: string | null
+
   // ─── UI state ─────────────────────────────────────────────
   leaseInfoPanelOpen: boolean
   vehicleTrackingPanelOpen: boolean
@@ -84,6 +90,13 @@ interface MapStore {
   setVehicleTrackingPanelOpen: (open: boolean) => void
   setLayerPanelOpen: (open: boolean) => void
   setReportModalOpen: (open: boolean) => void
+
+  // Draw/form actions
+  setDrawBoundaryMode: (active: boolean) => void
+  setDrawnBoundaryGeoJSON: (geojson: object | null) => void
+  openLeaseCreateForm: (boundary?: object) => void
+  openLeaseEditForm: (leaseId: string) => void
+  closeLeaseForm: () => void
 }
 
 const DEFAULT_LAYERS: LayerConfig[] = [
@@ -204,6 +217,11 @@ export const useMapStore = create<MapStore>()(
       vehicleAlerts: [],
       unreadAlertCount: 0,
 
+      drawBoundaryMode: false,
+      drawnBoundaryGeoJSON: null,
+      leaseFormOpen: false,
+      leaseFormEditId: null,
+
       leaseInfoPanelOpen: false,
       vehicleTrackingPanelOpen: false,
       layerPanelOpen: true,
@@ -273,6 +291,26 @@ export const useMapStore = create<MapStore>()(
       setVehicleTrackingPanelOpen: (vehicleTrackingPanelOpen) => set({ vehicleTrackingPanelOpen }),
       setLayerPanelOpen: (layerPanelOpen) => set({ layerPanelOpen }),
       setReportModalOpen: (reportModalOpen) => set({ reportModalOpen }),
+
+      setDrawBoundaryMode: (drawBoundaryMode) => set({ drawBoundaryMode }),
+      setDrawnBoundaryGeoJSON: (drawnBoundaryGeoJSON) => set({ drawnBoundaryGeoJSON }),
+      openLeaseCreateForm: (boundary) => set({
+        leaseFormOpen: true,
+        leaseFormEditId: null,
+        drawnBoundaryGeoJSON: boundary ?? null,
+        drawBoundaryMode: false,
+      }),
+      openLeaseEditForm: (leaseId) => set({
+        leaseFormOpen: true,
+        leaseFormEditId: leaseId,
+        drawBoundaryMode: false,
+      }),
+      closeLeaseForm: () => set({
+        leaseFormOpen: false,
+        leaseFormEditId: null,
+        drawnBoundaryGeoJSON: null,
+        drawBoundaryMode: false,
+      }),
     }),
     {
       name: 'minegis-map-state',

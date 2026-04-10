@@ -21,12 +21,14 @@ def make_polygon(center_lon: float, center_lat: float, size_deg: float = 0.02) -
     jitter = lambda: random.uniform(-size_deg * 0.3, size_deg * 0.3)
     hs = size_deg / 2
 
+    # Compute first point ONCE and reuse as closing point (GEOS requires identical first/last)
+    p0 = (center_lon - hs + jitter(), center_lat - hs + jitter())
     coords = [
-        (center_lon - hs + jitter(), center_lat - hs + jitter()),
+        p0,
         (center_lon + hs + jitter(), center_lat - hs * 0.8 + jitter()),
         (center_lon + hs * 1.1 + jitter(), center_lat + hs * 0.9 + jitter()),
         (center_lon - hs * 0.9 + jitter(), center_lat + hs + jitter()),
-        (center_lon - hs + jitter(), center_lat - hs + jitter()),  # close ring
+        p0,  # exact same tuple — closes the ring correctly
     ]
     return MultiPolygon(Polygon(coords, srid=4326), srid=4326)
 
