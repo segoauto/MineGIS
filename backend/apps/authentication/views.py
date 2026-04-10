@@ -108,3 +108,28 @@ def _get_client_ip(request: Request) -> str:
     if x_forwarded_for:
         return x_forwarded_for.split(',')[0].strip()
     return request.META.get('REMOTE_ADDR', '')
+
+from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def debug_login(request: Request) -> Response:
+    username = request.data.get('username')
+    password = request.data.get('password')
+    try:
+        user_exists = User.objects.filter(username=username).exists()
+        auth_user = authenticate(username=username, password=password)
+        db_user = User.objects.get(username=username) if user_exists else None
+        
+        return Response({
+            'username_tested': username,
+            'password_length': len(password) if password else 0,
+            'user_exists_in_db': user_exists,
+            'db_is_active': getattr(db_user, 'is_active', None),
+            'db_is_staff': getattr(db_user, 'is_staff', None),
+            'db_password_starts_with': db_user.password[:15] if db_user else None,
+            'authenticate_result_is_some': auth_user is not None,
+        })
+    except Exception as e:
+        return Response({'debug_error': str(e)})
