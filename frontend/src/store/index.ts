@@ -57,6 +57,9 @@ interface MapStore {
   layerPanelOpen: boolean
   reportModalOpen: boolean
 
+  // ─── GeoServer Cache Busting ──────────────────────────────
+  mapRefreshTrigger: number
+
   // ─── Actions ──────────────────────────────────────────────
   setBaseLayer: (layer: BaseLayerType) => void
   setZoom: (zoom: number) => void
@@ -97,6 +100,8 @@ interface MapStore {
   openLeaseCreateForm: (boundary?: object) => void
   openLeaseEditForm: (leaseId: string) => void
   closeLeaseForm: () => void
+  
+  triggerMapRefresh: () => void
 }
 
 const DEFAULT_LAYERS: LayerConfig[] = [
@@ -226,6 +231,8 @@ export const useMapStore = create<MapStore>()(
       vehicleTrackingPanelOpen: false,
       layerPanelOpen: true,
       reportModalOpen: false,
+      
+      mapRefreshTrigger: Date.now(),
 
       // ─── Actions ──────────────────────────────────────────
       setBaseLayer: (layer) => set({ baseLayer: layer }),
@@ -311,6 +318,8 @@ export const useMapStore = create<MapStore>()(
         drawnBoundaryGeoJSON: null,
         drawBoundaryMode: false,
       }),
+      
+      triggerMapRefresh: () => set({ mapRefreshTrigger: Date.now() }),
     }),
     {
       name: 'minegis-map-state',

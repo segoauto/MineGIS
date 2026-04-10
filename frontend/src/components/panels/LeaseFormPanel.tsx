@@ -64,6 +64,7 @@ export default function LeaseFormPanel() {
   const {
     leaseFormOpen, leaseFormEditId, drawnBoundaryGeoJSON,
     closeLeaseForm, setDrawBoundaryMode, drawBoundaryMode,
+    triggerMapRefresh,
   } = useMapStore()
   const { user } = useAuthStore()
   const queryClient = useQueryClient()
@@ -120,6 +121,7 @@ export default function LeaseFormPanel() {
     onSuccess: (lease) => {
       toast.success(`Lease "${lease.mine_name}" created!`)
       queryClient.invalidateQueries({ queryKey: ['leases'] })
+      triggerMapRefresh()
       closeLeaseForm()
     },
     onError: (err: any) => {
@@ -133,6 +135,7 @@ export default function LeaseFormPanel() {
       toast.success(`Lease "${lease.mine_name}" updated!`)
       queryClient.invalidateQueries({ queryKey: ['leases'] })
       queryClient.invalidateQueries({ queryKey: ['lease', leaseFormEditId] })
+      triggerMapRefresh()
       closeLeaseForm()
     },
     onError: (err: any) => {
@@ -145,6 +148,7 @@ export default function LeaseFormPanel() {
     onSuccess: () => {
       toast.success('Lease deleted')
       queryClient.invalidateQueries({ queryKey: ['leases'] })
+      triggerMapRefresh()
       closeLeaseForm()
     },
     onError: () => {

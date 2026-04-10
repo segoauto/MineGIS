@@ -22,7 +22,9 @@ import Point from 'ol/geom/Point'
 import { useMapStore } from '../store'
 import type { GeoJSONFeatureCollection, LeaseStatus, VehicleProperties } from '../types'
 
-const GEOSERVER_URL = import.meta.env.VITE_GEOSERVER_URL ?? 'http://localhost:8080/geoserver'
+const GEOSERVER_URL = import.meta.env?.VITE_GEOSERVER_URL && import.meta.env.VITE_GEOSERVER_URL !== 'http://localhost:8080/geoserver' 
+  ? import.meta.env.VITE_GEOSERVER_URL 
+  : '/geoserver'
 
 // Status → color mapping for lease layer styling
 const LEASE_COLORS: Record<LeaseStatus, string> = {
@@ -41,6 +43,7 @@ export function useMap(containerRef: React.RefObject<HTMLDivElement>) {
   const {
     baseLayer, layerVisibility, layerOpacity,
     selectLease, selectVehicle, setZoom, setCenter, setCursorCoords,
+    mapRefreshTrigger,
   } = useMapStore()
 
   // ─── Initialize map ───────────────────────────────────────────────────────
@@ -242,7 +245,7 @@ export function useMap(containerRef: React.RefObject<HTMLDivElement>) {
     })
   }, [baseLayer])
 
-  // ─── Update WMS layer visibility + opacity ────────────────────────────────
+  // ─── Update WMS layer visibility + opacity + refresh cache ────────────────
   useEffect(() => {
     if (!mapRef.current) return
     mapRef.current.getLayers().forEach((layer) => {
@@ -252,9 +255,16 @@ export function useMap(containerRef: React.RefObject<HTMLDivElement>) {
         if ('setOpacity' in layer) {
           (layer as TileLayer<TileWMS>).setOpacity(layerOpacity[id] ?? 1)
         }
+        
+        // If this layer is from GeoServer, we force OpenLayers to bust the cache
+        // by pushing a new dynamic param to the source.
+        const source = layer.getSource()
+        if (source instanceof TileWMS) {
+          source.updateParams({ '_b': mapRefreshTrigger })
+        }
       }
     })
-  }, [layerVisibility, layerOpacity])
+  }, [layerVisibility, layerOpacity, mapRefreshTrigger])
 
 
 
