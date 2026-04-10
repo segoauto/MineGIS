@@ -360,7 +360,7 @@ LEASE_DATA = [
 VEHICLE_DATA = [
     {
         "netradyne_device_id": "ND-TS-001",
-        "vehicle_number": "TS 09 EA 1234",
+        "vehicle_number": "TS05UE3699",
         "vehicle_type": "INSPECTION",
         "driver_name": "K. Ramesh",
         "driver_license": "TS-09-2019-1234567",
@@ -369,7 +369,7 @@ VEHICLE_DATA = [
     },
     {
         "netradyne_device_id": "ND-TS-002",
-        "vehicle_number": "TS 09 EB 5678",
+        "vehicle_number": "TS05UE0999",
         "vehicle_type": "INSPECTION",
         "driver_name": "P. Suresh Kumar",
         "driver_license": "TS-09-2020-7654321",
@@ -378,7 +378,7 @@ VEHICLE_DATA = [
     },
     {
         "netradyne_device_id": "ND-TS-003",
-        "vehicle_number": "TS 11 EC 2345",
+        "vehicle_number": "TG05T8099",
         "vehicle_type": "ENFORCEMENT",
         "driver_name": "G. Narasimha Rao",
         "driver_license": "TS-11-2018-2345678",
@@ -387,7 +387,7 @@ VEHICLE_DATA = [
     },
     {
         "netradyne_device_id": "ND-TS-004",
-        "vehicle_number": "TS 11 ED 9012",
+        "vehicle_number": "TG05U2349",
         "vehicle_type": "INSPECTION",
         "driver_name": "B. Venkateswara Reddy",
         "driver_license": "TS-11-2021-3456789",
@@ -396,7 +396,7 @@ VEHICLE_DATA = [
     },
     {
         "netradyne_device_id": "ND-TS-005",
-        "vehicle_number": "TS 13 EE 3456",
+        "vehicle_number": "TS05UE9099",
         "vehicle_type": "ENFORCEMENT",
         "driver_name": "M. Srinivas",
         "driver_license": "TS-13-2022-4567890",

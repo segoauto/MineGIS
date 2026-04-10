@@ -165,11 +165,11 @@ TELANGANA_LEASES = [
 ]
 
 VEHICLES = [
-    {"number": "TS 09 EA 1234", "type": "INSPECTION", "driver": "Ramesh Kumar", "district": "Bhadradri Kothagudem", "lat": 17.6, "lon": 80.5},
-    {"number": "TS 07 BF 5678", "type": "ENFORCEMENT", "driver": "Suresh Reddy", "district": "Nalgonda", "lat": 16.88, "lon": 79.56},
-    {"number": "TS 11 CD 9012", "type": "SURVEY", "driver": "Vijay Babu", "district": "Karimnagar", "lat": 18.44, "lon": 79.12},
-    {"number": "TS 05 EG 3456", "type": "TRANSPORT", "driver": "Arun Sharma", "district": "Khammam", "lat": 17.68, "lon": 80.80},
-    {"number": "TS 13 HK 7890", "type": "OFFICIAL", "driver": "Nagaraju Rao", "district": "Mancherial", "lat": 18.88, "lon": 79.40},
+    {"number": "TS05UE3699", "type": "INSPECTION", "driver": "Ramesh Kumar", "district": "Bhadradri Kothagudem", "lat": 17.6, "lon": 80.5},
+    {"number": "TS05UE0999", "type": "ENFORCEMENT", "driver": "Suresh Reddy", "district": "Nalgonda", "lat": 16.88, "lon": 79.56},
+    {"number": "TG05T8099", "type": "SURVEY", "driver": "Vijay Babu", "district": "Karimnagar", "lat": 18.44, "lon": 79.12},
+    {"number": "TG05U2349", "type": "TRANSPORT", "driver": "Arun Sharma", "district": "Khammam", "lat": 17.68, "lon": 80.80},
+    {"number": "TS05UE9099", "type": "OFFICIAL", "driver": "Nagaraju Rao", "district": "Mancherial", "lat": 18.88, "lon": 79.40},
 ]
 
 
