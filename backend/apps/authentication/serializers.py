@@ -16,7 +16,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    profile = UserProfileSerializer(read_only=True)
+    profile = serializers.SerializerMethodField()
     full_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -27,6 +27,14 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_full_name(self, obj: User) -> str:
         return obj.get_full_name() or obj.username
+
+    def get_profile(self, obj: User):
+        try:
+            if hasattr(obj, 'profile'):
+                return UserProfileSerializer(obj.profile).data
+        except Exception:
+            pass
+        return None
 
 
 class MineGISTokenObtainPairSerializer(TokenObtainPairSerializer):

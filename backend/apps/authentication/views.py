@@ -28,8 +28,8 @@ def login_view(request: Request) -> Response:
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        # Audit log
-        user = User.objects.get(username=request.data.get('username'))
+        # Audit log (Use the actual authenticated user from token)
+        user = serializer.user
         AuditLog.objects.create(
             user=user,
             action='LOGIN',
@@ -42,8 +42,10 @@ def login_view(request: Request) -> Response:
 
         return Response(data, status=status.HTTP_200_OK)
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return Response(
-            {'detail': 'Invalid credentials. Please check your username and password.'},
+            {'detail': 'Invalid credentials. Please check your username and password.', 'error': str(e)},
             status=status.HTTP_401_UNAUTHORIZED
         )
 
