@@ -46,8 +46,9 @@ interface MapStore {
   unreadAlertCount: number
 
   // ─── Draw / Lease Form state ──────────────────────────────
-  drawBoundaryMode: boolean
+  drawBoundaryMode: 'polygon' | 'point' | false
   drawnBoundaryGeoJSON: object | null
+  drawnPointCoords: [number, number] | null
   leaseFormOpen: boolean
   leaseFormEditId: string | null
 
@@ -95,9 +96,10 @@ interface MapStore {
   setReportModalOpen: (open: boolean) => void
 
   // Draw/form actions
-  setDrawBoundaryMode: (active: boolean) => void
+  setDrawBoundaryMode: (mode: 'polygon' | 'point' | false) => void
   setDrawnBoundaryGeoJSON: (geojson: object | null) => void
-  openLeaseCreateForm: (boundary?: object) => void
+  setDrawnPointCoords: (coords: [number, number] | null) => void
+  openLeaseCreateForm: (boundary?: object, point?: [number, number] | null) => void
   openLeaseEditForm: (leaseId: string) => void
   closeLeaseForm: () => void
   
@@ -230,9 +232,9 @@ export const useMapStore = create<MapStore>()(
       leaseInfoPanelOpen: false,
       vehicleTrackingPanelOpen: false,
       layerPanelOpen: true,
-      reportModalOpen: false,
-      
-      mapRefreshTrigger: Date.now(),
+      drawBoundaryMode: false,
+      drawnBoundaryGeoJSON: null,
+      drawnPointCoords: null,
 
       // ─── Actions ──────────────────────────────────────────
       setBaseLayer: (layer) => set({ baseLayer: layer }),
@@ -299,12 +301,16 @@ export const useMapStore = create<MapStore>()(
       setLayerPanelOpen: (layerPanelOpen) => set({ layerPanelOpen }),
       setReportModalOpen: (reportModalOpen) => set({ reportModalOpen }),
 
-      setDrawBoundaryMode: (drawBoundaryMode) => set({ drawBoundaryMode }),
-      setDrawnBoundaryGeoJSON: (drawnBoundaryGeoJSON) => set({ drawnBoundaryGeoJSON }),
-      openLeaseCreateForm: (boundary) => set({
+      // Draw & Form
+      setDrawBoundaryMode: (mode) => set({ drawBoundaryMode: mode }),
+      setDrawnBoundaryGeoJSON: (geojson) => set({ drawnBoundaryGeoJSON: geojson }),
+      setDrawnPointCoords: (coords) => set({ drawnPointCoords: coords }),
+      
+      openLeaseCreateForm: (boundary, point) => set({
         leaseFormOpen: true,
         leaseFormEditId: null,
         drawnBoundaryGeoJSON: boundary ?? null,
+        drawnPointCoords: point ?? null,
         drawBoundaryMode: false,
       }),
       openLeaseEditForm: (leaseId) => set({
@@ -316,6 +322,7 @@ export const useMapStore = create<MapStore>()(
         leaseFormOpen: false,
         leaseFormEditId: null,
         drawnBoundaryGeoJSON: null,
+        drawnPointCoords: null,
         drawBoundaryMode: false,
       }),
       

@@ -31,6 +31,7 @@ export default function MapView() {
   const {
     cursorCoords, selectedVehicleId, vehicles, selectedLeaseData,
     drawBoundaryMode, setDrawBoundaryMode, openLeaseCreateForm,
+    setDrawnPointCoords,
   } = useMapStore()
 
   useEffect(() => {
@@ -51,7 +52,7 @@ export default function MapView() {
       drawSourceRef.current.clear()
       const draw = new Draw({
         source: drawSourceRef.current,
-        type: 'Polygon',
+        type: drawBoundaryMode === 'point' ? 'Point' : 'Polygon',
         freehandCondition: () => false,
         style: new Style({
           fill: new Fill({ color: 'rgba(16, 185, 129, 0.15)' }),
@@ -61,12 +62,21 @@ export default function MapView() {
 
       draw.on('drawend', (evt) => {
         const format = new GeoJSON()
-        const geojson = format.writeGeometryObject(evt.feature.getGeometry()!, {
-          dataProjection: 'EPSG:4326',
-          featureProjection: 'EPSG:3857',
-        })
-        // Open lease form with drawn boundary
-        openLeaseCreateForm(geojson as object)
+        const geometry = evt.feature.getGeometry()!
+        
+        if (drawBoundaryMode === 'point' && geometry.getType() === 'Point') {
+          // Transform point back to EPSG:4326 for the form inputs
+          const coords = (geometry as import('ol/geom/Point').default).clone().transform('EPSG:3857', 'EPSG:4326').getCoordinates()
+          setDrawnPointCoords([coords[0], coords[1]])
+          setDrawBoundaryMode(false)
+        } else {
+          const geojson = format.writeGeometryObject(geometry, {
+            dataProjection: 'EPSG:4326',
+            featureProjection: 'EPSG:3857',
+          })
+          // Open lease form with drawn boundary (polygon logic)
+          openLeaseCreateForm(geojson as object)
+        }
       })
 
       map.addInteraction(draw)
@@ -86,8 +96,10 @@ export default function MapView() {
         drawSourceRef.current.clear()
         window.removeEventListener('keydown', onKeyDown)
       }
+    } else {
+      drawSourceRef.current.clear()
     }
-  }, [drawBoundaryMode, mapReady, mapRef, openLeaseCreateForm, setDrawBoundaryMode])
+  }, [drawBoundaryMode, mapReady, mapRef, openLeaseCreateForm, setDrawBoundaryMode, setDrawnPointCoords])
 
   // Track history line drawing
   useEffect(() => {

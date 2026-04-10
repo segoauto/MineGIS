@@ -9,6 +9,7 @@ import { useMapStore, useAuthStore } from '../../store'
 import { leasesApi, type LeasePayload } from '../../api/leases'
 import clsx from 'clsx'
 import { format } from 'date-fns'
+import * as turf from '@turf/turf'
 
 const MINERAL_TYPES = [
   { value: 'COAL',      label: 'Coal' },
@@ -62,8 +63,8 @@ const EMPTY_FORM: Partial<LeasePayload> = {
 
 export default function LeaseFormPanel() {
   const {
-    leaseFormOpen, leaseFormEditId, drawnBoundaryGeoJSON,
-    closeLeaseForm, setDrawBoundaryMode, drawBoundaryMode,
+    leaseFormOpen, leaseFormEditId, drawnBoundaryGeoJSON, drawnPointCoords,
+    closeLeaseForm, setDrawBoundaryMode, drawBoundaryMode, setDrawnBoundaryGeoJSON,
     triggerMapRefresh,
   } = useMapStore()
   const { user } = useAuthStore()
@@ -71,6 +72,10 @@ export default function LeaseFormPanel() {
 
   const [form, setForm] = useState<Partial<LeasePayload>>(EMPTY_FORM)
   const [deleteConfirm, setDeleteConfirm] = useState(false)
+  
+  const [lat, setLat] = useState<string>('')
+  const [lon, setLon] = useState<string>('')
+  const [redZoneBuffer, setRedZoneBuffer] = useState<string>('')
 
   // Load existing lease data when editing
   const { data: existingLease, isLoading: loadingEdit } = useQuery({
@@ -108,13 +113,50 @@ export default function LeaseFormPanel() {
     }
   }, [existingLease, leaseFormEditId, user])
 
-  // Pre-fill area if boundary was drawn (approximate)
+  // Pre-fill coordinates if point was dropped on map
   useEffect(() => {
-    if (drawnBoundaryGeoJSON) {
-      // Rough area calc from bounding box – exact calc happens server-side
-      setForm(f => ({ ...f, boundary_geojson: drawnBoundaryGeoJSON }))
+    if (drawnPointCoords) {
+      setLon(drawnPointCoords[0].toFixed(6))
+      setLat(drawnPointCoords[1].toFixed(6))
     }
-  }, [drawnBoundaryGeoJSON])
+  }, [drawnPointCoords])
+
+  // Auto-generate boundary based on Lat, Lon, Area, and optional Red Zone
+  useEffect(() => {
+    const latNum = parseFloat(lat)
+    const lonNum = parseFloat(lon)
+    const area = form.area_hectares
+    
+    if (!isNaN(latNum) && !isNaN(lonNum) && area && area > 0) {
+      const center = turf.point([lonNum, latNum])
+      const areaSqMeters = area * 10000
+      const sideLengthMeters = Math.sqrt(areaSqMeters)
+      const radiusKm = (sideLengthMeters / 2) / 1000
+      
+      try {
+        // Generate a square (envelope of a circle)
+        const circle = turf.circle(center, radiusKm, { steps: 4 })
+        const square = turf.envelope(circle)
+        
+        let featureCollection: any = turf.featureCollection([square])
+        
+        // Add Red Zone Buffer if specified
+        const bufferMeters = parseFloat(redZoneBuffer)
+        if (!isNaN(bufferMeters) && bufferMeters > 0) {
+          const buffered = turf.buffer(square, bufferMeters / 1000, { units: 'kilometers' })
+          if (buffered) {
+            // Include it in the geojson output so it saves or at least draws it!
+            // The backend boundary is MultiPolygon. Overlapping polygons are valid.
+            featureCollection = turf.featureCollection([square, buffered])
+          }
+        }
+        
+        setDrawnBoundaryGeoJSON(featureCollection)
+      } catch (e) {
+        console.error("Failed to generate math geometry", e)
+      }
+    }
+  }, [lat, lon, form.area_hectares, redZoneBuffer, setDrawnBoundaryGeoJSON])
 
   const createMutation = useMutation({
     mutationFn: (payload: LeasePayload) => leasesApi.create(payload),
@@ -208,39 +250,91 @@ export default function LeaseFormPanel() {
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
 
           {/* Boundary section */}
-          <div className={clsx(
-            'rounded-lg p-3 border text-xs',
-            drawnBoundaryGeoJSON || existingLease?.boundary_geojson
-              ? 'bg-green-900/10 border-green-700/30'
-              : 'bg-yellow-900/10 border-yellow-700/30'
-          )}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {drawnBoundaryGeoJSON || existingLease?.boundary_geojson
-                  ? <CheckCircle size={12} className="text-green-400" />
-                  : <AlertCircle size={12} className="text-yellow-400" />
-                }
-                <span className={drawnBoundaryGeoJSON || existingLease?.boundary_geojson ? 'text-green-300' : 'text-yellow-300'}>
-                  {drawnBoundaryGeoJSON ? 'Boundary drawn on map' :
-                   existingLease?.boundary_geojson ? 'Using existing boundary' :
-                   'No boundary set'}
-                </span>
+          <Section label="Boundary Generation">
+            <div className={clsx(
+              'rounded-lg p-3 border text-xs mb-3 flex flex-col gap-3',
+              drawnBoundaryGeoJSON || existingLease?.boundary_geojson
+                ? 'bg-green-900/10 border-green-700/30'
+                : 'bg-yellow-900/10 border-yellow-700/30'
+            )}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {drawnBoundaryGeoJSON || existingLease?.boundary_geojson
+                    ? <CheckCircle size={12} className="text-green-400" />
+                    : <AlertCircle size={12} className="text-yellow-400" />
+                  }
+                  <span className={drawnBoundaryGeoJSON || existingLease?.boundary_geojson ? 'text-green-300' : 'text-yellow-300'}>
+                    {drawnBoundaryGeoJSON ? 'Boundary ready' :
+                     existingLease?.boundary_geojson ? 'Using existing boundary' :
+                     'No boundary set'}
+                  </span>
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setDrawBoundaryMode(!drawBoundaryMode)}
-                className={clsx(
-                  'flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors',
-                  drawBoundaryMode
-                    ? 'bg-gov-600 text-white'
-                    : 'bg-map-border text-map-text hover:bg-gov-600/30'
-                )}
-              >
-                <MapPin size={10} />
-                {drawBoundaryMode ? 'Drawing… (dbl-click to finish)' : 'Draw on Map'}
-              </button>
+              
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDrawBoundaryMode(drawBoundaryMode === 'point' ? false : 'point')}
+                  className={clsx(
+                    'flex items-center justify-center gap-1.5 px-2 py-1.5 rounded transition-colors border',
+                    drawBoundaryMode === 'point'
+                      ? 'bg-gov-600 text-white border-gov-500'
+                      : 'bg-map-bg text-map-text border-map-border hover:bg-gov-600/20'
+                  )}
+                >
+                  <MapPin size={12} />
+                  {drawBoundaryMode === 'point' ? 'Drop Pin...' : 'Location Pin'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDrawBoundaryMode(drawBoundaryMode === 'polygon' ? false : 'polygon')}
+                  className={clsx(
+                    'flex items-center justify-center gap-1.5 px-2 py-1.5 rounded transition-colors border',
+                    drawBoundaryMode === 'polygon'
+                      ? 'bg-gov-600 text-white border-gov-500'
+                      : 'bg-map-bg text-map-text border-map-border hover:bg-gov-600/20'
+                  )}
+                >
+                  <PenLine size={12} />
+                  {drawBoundaryMode === 'polygon' ? 'Drawing...' : 'Freehand Draw'}
+                </button>
+              </div>
             </div>
-          </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <FormField label="Center Latitude">
+                <input
+                  type="number" step="0.000001"
+                  value={lat} onChange={(e) => setLat(e.target.value)}
+                  placeholder="e.g. 17.3850" className={inputCls}
+                />
+              </FormField>
+              <FormField label="Center Longitude">
+                <input
+                  type="number" step="0.000001"
+                  value={lon} onChange={(e) => setLon(e.target.value)}
+                  placeholder="e.g. 78.4867" className={inputCls}
+                />
+              </FormField>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3 mt-3">
+              <FormField label="Area (Hectares) *">
+                <input
+                  required type="number" step="0.01" min="0"
+                  value={form.area_hectares ?? ''} onChange={f('area_hectares')}
+                  placeholder="0.00" className={inputCls}
+                />
+              </FormField>
+              <FormField label="Red Zone Buffer (m)">
+                <input
+                  type="number" step="1" min="0"
+                  value={redZoneBuffer} onChange={(e) => setRedZoneBuffer(e.target.value)}
+                  placeholder="Safety radius" className={inputCls}
+                />
+              </FormField>
+            </div>
+          </Section>
 
           {/* Mine Details */}
           <Section label="Mine Information">
@@ -270,19 +364,6 @@ export default function LeaseFormPanel() {
                 </select>
               </FormField>
             </div>
-
-            <FormField label="Area (Hectares) *">
-              <input
-                required
-                type="number"
-                step="0.01"
-                min="0"
-                value={form.area_hectares ?? ''}
-                onChange={f('area_hectares')}
-                placeholder="0.00"
-                className={inputCls}
-              />
-            </FormField>
           </Section>
 
           {/* Location */}
