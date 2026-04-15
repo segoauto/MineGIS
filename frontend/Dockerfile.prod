@@ -14,7 +14,7 @@ ENV VITE_GEOSERVER_URL=$VITE_GEOSERVER_URL
 
 # Install dependencies first (cache-friendly)
 COPY package.json package-lock.json* ./
-RUN npm ci --prefer-offline
+RUN npm install --prefer-offline --no-audit --no-fund
 
 # Copy source and build
 COPY . .
