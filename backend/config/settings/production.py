@@ -15,10 +15,15 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # ─── CORS — allow requests from the production domain ────────
 DOMAIN = os.environ.get('DOMAIN', '')
-CORS_ALLOWED_ORIGINS = [
-    f'https://{DOMAIN}',
-    f'https://www.{DOMAIN}',
-]
+# If no proper domain set (IP-only deploy), allow all origins
+_is_proper_domain = DOMAIN and '.' in DOMAIN and not DOMAIN.replace('.', '').isdigit()
+if _is_proper_domain:
+    CORS_ALLOWED_ORIGINS = [
+        f'https://{DOMAIN}',
+        f'https://www.{DOMAIN}',
+    ]
+else:
+    CORS_ALLOW_ALL_ORIGINS = True  # Safe for IP-only / internal deploys
 CORS_ALLOW_CREDENTIALS = True
 
 # ─── Security ────────────────────────────────────────────────
@@ -28,9 +33,11 @@ SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 X_FRAME_OPTIONS = 'SAMEORIGIN'
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-SECURE_SSL_REDIRECT = False   # Nginx handles HTTPS redirect; avoid Django double-redirect
+# Relax cookie security when no SSL (IP-only deploy) — tighten after SSL is set up
+_has_ssl = _is_proper_domain  # Will be True once domain + Certbot are configured
+SESSION_COOKIE_SECURE = _has_ssl
+CSRF_COOKIE_SECURE = _has_ssl
+SECURE_SSL_REDIRECT = False   # Nginx handles HTTPS redirect
 
 # ─── Logging ─────────────────────────────────────────────────
 LOGGING = {
