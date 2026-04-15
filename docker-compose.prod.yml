@@ -1,13 +1,14 @@
 version: '3.8'
 
 # ─────────────────────────────────────────────────────────────
-# Production overrides — use with:
+# Production overrides — tuned for 2 GB RAM + 8 GB swap
+# Usage:
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 # ─────────────────────────────────────────────────────────────
 
 services:
 
-  # ── Django Backend (Production) ───────────────────────────
+  # ── Django Backend ────────────────────────────────────────
   backend:
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.production
@@ -15,66 +16,62 @@ services:
       SECURE_SSL_REDIRECT: "True"
       SESSION_COOKIE_SECURE: "True"
       CSRF_COOKIE_SECURE: "True"
-    # Don't expose Django port directly in production — nginx handles it
     ports: []
-    deploy:
-      resources:
-        limits:
-          memory: 1g
+    mem_limit: 400m
+    memswap_limit: 1g
     restart: always
 
   # ── Celery Worker ─────────────────────────────────────────
   celery_worker:
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.production
+    mem_limit: 256m
+    memswap_limit: 512m
     restart: always
-    deploy:
-      resources:
-        limits:
-          memory: 512m
 
   # ── Celery Beat ───────────────────────────────────────────
   celery_beat:
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.production
+    mem_limit: 128m
+    memswap_limit: 256m
     restart: always
-    deploy:
-      resources:
-        limits:
-          memory: 256m
 
   # ── PostgreSQL ────────────────────────────────────────────
   db:
+    command: >
+      postgres
+      -c shared_buffers=128MB
+      -c work_mem=8MB
+      -c maintenance_work_mem=64MB
+      -c max_connections=50
+      -c effective_cache_size=256MB
+    mem_limit: 512m
+    memswap_limit: 1g
     restart: always
-    deploy:
-      resources:
-        limits:
-          memory: 1.5g
 
-  # ── Redis ────────────────────────────────────────────────
+  # ── Redis ─────────────────────────────────────────────────
   redis:
+    command: redis-server --maxmemory 100mb --maxmemory-policy allkeys-lru
+    mem_limit: 128m
+    memswap_limit: 256m
     restart: always
-    deploy:
-      resources:
-        limits:
-          memory: 256m
 
-  # ── GeoServer ─────────────────────────────────────────────
+  # ── GeoServer (reduced heap for 2GB server) ───────────────
   geoserver:
     environment:
       JAVA_OPTS: >-
-        -Xms512m -Xmx1536m
+        -Xms256m -Xmx512m
         -XX:+UseG1GC
+        -XX:MaxGCPauseMillis=200
         -Dgeoserver.csrf.disabled=true
-    # Only expose GeoServer via nginx, not directly
+        -DGEOSERVER_DATA_DIR=/opt/geoserver_data
     ports: []
+    mem_limit: 700m
+    memswap_limit: 2g
     restart: always
-    deploy:
-      resources:
-        limits:
-          memory: 2g
 
-  # ── Frontend (Production: built static files served by nginx) ─
+  # ── Frontend (multi-stage build) ──────────────────────────
   frontend:
     build:
       context: ./frontend
@@ -83,14 +80,13 @@ services:
         VITE_API_URL: /api
         VITE_WS_URL: /ws
         VITE_GEOSERVER_URL: /geoserver
-    # No ports — nginx serves built assets from the shared volume
     ports: []
     volumes:
       - frontend_dist:/app/dist
-    restart: "no"   # One-shot build container
+    restart: "no"
     command: ["sh", "-c", "cp -r /app/dist/* /dist/ && echo 'Build complete.'"]
 
-  # ── Nginx (SSL-enabled) ───────────────────────────────────
+  # ── Nginx (SSL) ───────────────────────────────────────────
   nginx:
     volumes:
       - backend_static:/staticfiles:ro
@@ -101,15 +97,15 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    mem_limit: 64m
+    memswap_limit: 128m
     restart: always
 
-  # ── Superset (optional — comment out to save 1GB RAM) ─────
+  # ── Superset DISABLED on 2GB droplet (needs 1GB+) ────────
+  # To enable: uncomment and resize to 4GB droplet
   superset:
-    restart: always
-    deploy:
-      resources:
-        limits:
-          memory: 1g
+    profiles: ["superset"]   # won't start unless --profile superset is passed
 
 volumes:
   frontend_dist:
+
