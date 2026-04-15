@@ -40,15 +40,20 @@ if not User.objects.filter(email='admin@minegis.ts.gov.in').exists():
         first_name='Admin',
         last_name='MineGIS'
     )
-    u.role = 'admin'
+    u.username = 'admin@minegis.ts.gov.in'
+    u.role = 'R01_SUPER_ADMIN'
     u.is_verified = True
     u.save()
     print('Admin user created: ' + u.email)
 else:
     u = User.objects.get(email='admin@minegis.ts.gov.in')
+    u.username = 'admin@minegis.ts.gov.in'
     u.set_password('MineGIS@2026')
-    u.role = 'admin'
+    u.role = 'R01_SUPER_ADMIN'
     u.is_verified = True
+    u.is_active = True
+    u.is_staff = True
+    u.is_superuser = True
     u.save()
     print('Admin user verified: ' + u.email)
 " || true
