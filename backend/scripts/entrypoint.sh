@@ -32,18 +32,25 @@ echo "✅ Migrations complete"
 # ─── Create superuser if not exists ─────────────────────────
 echo "🔄 Creating admin user if not exists..."
 python manage.py shell -c "
-from django.contrib.auth.models import User
-if not User.objects.filter(username='admin@minegis.ts.gov.in').exists():
+from apps.authentication.models import User
+if not User.objects.filter(email='admin@minegis.ts.gov.in').exists():
     u = User.objects.create_superuser(
-        username='admin@minegis.ts.gov.in',
         email='admin@minegis.ts.gov.in',
         password='MineGIS@2026',
-        first_name='System',
-        last_name='Administrator'
+        first_name='Admin',
+        last_name='MineGIS'
     )
-    print('Admin user created')
+    u.role = 'admin'
+    u.is_verified = True
+    u.save()
+    print('Admin user created: ' + u.email)
 else:
-    print('Admin user already exists')
+    u = User.objects.get(email='admin@minegis.ts.gov.in')
+    u.set_password('MineGIS@2026')
+    u.role = 'admin'
+    u.is_verified = True
+    u.save()
+    print('Admin user verified: ' + u.email)
 " || true
 
 # ─── Run seed data ──────────────────────────────────────────

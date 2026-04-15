@@ -56,8 +56,8 @@ class GeoServerConfigurator:
             timeout=30,
         )
 
-    def wait_for_geoserver(self, max_attempts: int = 100) -> bool:
-        """Poll GeoServer until it's ready."""
+    def wait_for_geoserver(self, max_attempts: int = 20) -> bool:
+        """Poll GeoServer REST API until it's ready (max 100s)."""
         for i in range(max_attempts):
             try:
                 r = self._get('/workspaces')
@@ -68,7 +68,7 @@ class GeoServerConfigurator:
                 pass
             logger.info(f"Waiting for GeoServer... ({i+1}/{max_attempts})")
             time.sleep(5)
-        logger.error("GeoServer did not become ready")
+        logger.warning("GeoServer REST API not ready after 100s — skipping auto-config (non-fatal)")
         return False
 
     def configure_all(self):
