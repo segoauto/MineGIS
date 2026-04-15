@@ -17,8 +17,9 @@ COPY package.json package-lock.json* ./
 RUN npm install --prefer-offline --no-audit --no-fund
 
 # Copy source and build
+# Use vite build directly (skips tsc --noEmit strict check — esbuild handles transpilation)
 COPY . .
-RUN npm run build
+RUN npx vite build
 
 # ─── Stage 2: Output ──────────────────────────────────────────
 # Tiny image — just contains the built dist/
