@@ -1,0 +1,115 @@
+version: '3.8'
+
+# ─────────────────────────────────────────────────────────────
+# Production overrides — use with:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# ─────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Django Backend (Production) ───────────────────────────
+  backend:
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      DJANGO_DEBUG: "False"
+      SECURE_SSL_REDIRECT: "True"
+      SESSION_COOKIE_SECURE: "True"
+      CSRF_COOKIE_SECURE: "True"
+    # Don't expose Django port directly in production — nginx handles it
+    ports: []
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    restart: always
+
+  # ── Celery Worker ─────────────────────────────────────────
+  celery_worker:
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
+  # ── Celery Beat ───────────────────────────────────────────
+  celery_beat:
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+  # ── PostgreSQL ────────────────────────────────────────────
+  db:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 1.5g
+
+  # ── Redis ────────────────────────────────────────────────
+  redis:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+  # ── GeoServer ─────────────────────────────────────────────
+  geoserver:
+    environment:
+      JAVA_OPTS: >-
+        -Xms512m -Xmx1536m
+        -XX:+UseG1GC
+        -Dgeoserver.csrf.disabled=true
+    # Only expose GeoServer via nginx, not directly
+    ports: []
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+
+  # ── Frontend (Production: built static files served by nginx) ─
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: /api
+        VITE_WS_URL: /ws
+        VITE_GEOSERVER_URL: /geoserver
+    # No ports — nginx serves built assets from the shared volume
+    ports: []
+    volumes:
+      - frontend_dist:/app/dist
+    restart: "no"   # One-shot build container
+    command: ["sh", "-c", "cp -r /app/dist/* /dist/ && echo 'Build complete.'"]
+
+  # ── Nginx (SSL-enabled) ───────────────────────────────────
+  nginx:
+    volumes:
+      - backend_static:/staticfiles:ro
+      - backend_media:/media:ro
+      - frontend_dist:/usr/share/nginx/html:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: always
+
+  # ── Superset (optional — comment out to save 1GB RAM) ─────
+  superset:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+
+volumes:
+  frontend_dist:

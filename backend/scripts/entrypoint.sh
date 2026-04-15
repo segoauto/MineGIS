@@ -21,7 +21,7 @@ echo "✅ Redis is ready"
 
 # ─── Make migrations for custom apps (idempotent) ───────────
 echo "🔄 Making migrations for custom apps..."
-python manage.py makemigrations authentication leases gis vehicle_tracking audit --noinput 2>/dev/null || true
+python manage.py makemigrations authentication leases gis vehicle_tracking audit notifications --noinput 2>/dev/null || true
 echo "✅ Makemigrations done"
 
 # ─── Run Django migrations ──────────────────────────────────

@@ -94,14 +94,20 @@ class VehicleAlert(models.Model):
     )
 
     ALERT_TYPES = [
-        ('GEOFENCE_ENTRY', 'Entered Mine Boundary'),
-        ('GEOFENCE_EXIT', 'Exited Mine Boundary'),
-        ('GEOFENCE_UNAUTHORIZED', 'Unauthorized Mine Entry'),
-        ('OVERSPEEDING', 'Overspeeding'),
-        ('HARSH_BRAKING', 'Harsh Braking'),
-        ('IDLE_ENGINE', 'Engine Idle > 30 min'),
-        ('ROUTE_DEVIATION', 'Route Deviation'),
-        ('NETRADYNE_ALERT', 'Netradyne Alert'),
+        ('VA01', 'Unauthorized Mine Entry'),
+        ('VA02', 'Geofence Entry (authorized)'),
+        ('VA03', 'Geofence Exit'),
+        ('VA04', 'Overspeeding'),
+        ('VA05', 'Harsh Braking'),
+        ('VA06', 'Harsh Acceleration'),
+        ('VA07', 'Driver Distraction'),
+        ('VA08', 'Driver Drowsiness'),
+        ('VA09', 'Seatbelt Violation'),
+        ('VA10', 'Engine Idle > 30 min'),
+        ('VA11', 'Route Deviation'),
+        ('VA12', 'Vehicle Offline > 2 hours'),
+        ('VA13', 'Vehicle in eco-sensitive zone'),
+        ('VA14', 'Speed in forest area'),
     ]
     alert_type = models.CharField(max_length=30, choices=ALERT_TYPES)
 

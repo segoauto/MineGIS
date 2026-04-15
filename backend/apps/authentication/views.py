@@ -32,12 +32,15 @@ def login_view(request: Request) -> Response:
         user = serializer.user
         AuditLog.objects.create(
             user=user,
-            action='LOGIN',
-            model_name='User',
-            object_id=str(user.id),
-            object_repr=user.username,
-            ip_address=_get_client_ip(request),
+            user_name=user.username,
+            user_role=getattr(user.profile, 'role', 'R11_REPORT_VIEWER'),
+            user_ip=_get_client_ip(request),
             user_agent=request.META.get('HTTP_USER_AGENT', ''),
+            action_type='LOGIN',
+            entity_type='User',
+            entity_id=str(user.id),
+            description=f"User {user.username} logged in successfully",
+            module='Authentication'
         )
 
         return Response(data, status=status.HTTP_200_OK)
@@ -66,11 +69,14 @@ def logout_view(request: Request) -> Response:
 
         AuditLog.objects.create(
             user=request.user,
-            action='LOGOUT',
-            model_name='User',
-            object_id=str(request.user.id),
-            object_repr=request.user.username,
-            ip_address=_get_client_ip(request),
+            user_name=request.user.username,
+            user_role=getattr(request.user.profile, 'role', 'R11_REPORT_VIEWER'),
+            user_ip=_get_client_ip(request),
+            action_type='LOGOUT',
+            entity_type='User',
+            entity_id=str(request.user.id),
+            description=f"User {request.user.username} logged out",
+            module='Authentication'
         )
 
         return Response({'detail': 'Successfully logged out.'}, status=status.HTTP_200_OK)
@@ -89,18 +95,70 @@ def me_view(request: Request) -> Response:
     return Response(serializer.data)
 
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def sso_authorize(request: Request) -> Response:
+    """
+    GET /api/auth/sso/authorize/
+    Redirects to the NIC e-Pramaan authorization endpoint (Mocked).
+    """
+    # In production, this would be a real OIDC URL:
+    # https://epramaan.meripehchaan.gov.in/oauth/authorize?client_id=...
+    mock_sso_url = "http://localhost:3000/sso-portal" # Simulation portal
+    return Response({'redirect_url': mock_sso_url})
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def sso_callback(request: Request) -> Response:
+    """
+    POST /api/auth/sso/callback/
+    Exchanges authorization code for JWT.
+    """
+    code = request.data.get('code')
+    if not code:
+        return Response({'detail': 'Authorization code missing'}, status=400)
+
+    # In a real OIDC flow, we would call NIC's token endpoint here.
+    # For simulation, we assume any code = successful govt auth.
+    
+    # Mock user data from "NIC Claims"
+    sso_username = f"nic_user_{code[:6]}"
+    email = f"{sso_username}@gov.in"
+    
+    user, created = User.objects.get_or_create(
+        username=email,
+        defaults={
+            'email': email,
+            'first_name': 'Govt.',
+            'last_name': 'Officer'
+        }
+    )
+
+    refresh = RefreshToken.for_user(user)
+    
+    # Add custom claims
+    data = {
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+        'user': UserSerializer(user).data
+    }
+
+    # Audit log
+    AuditLog.objects.create(
+        user=user,
+        action_type='LOGIN',
+        entity_type='User',
+        entity_id=str(user.id),
+        description=f"SSO Login via NIC e-Pramaan (Code: {code[:4]}...)"
+    )
+
+    return Response(data)
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def sso_view(request: Request) -> Response:
-    """
-    POST /api/auth/sso/
-    NIC e-Pramaan SSO stub — to be integrated with NIC.
-    """
-    # TODO: Integrate with NIC e-Pramaan when govt network access is available
-    return Response(
-        {'detail': 'NIC e-Pramaan SSO integration pending. Contact system administrator.'},
-        status=status.HTTP_501_NOT_IMPLEMENTED
-    )
+    """... Deprecated legacy view ..."""
+    return Response({'detail': 'Use /api/auth/sso/authorize/'}, status=308)
 
 
 def _get_client_ip(request: Request) -> str:

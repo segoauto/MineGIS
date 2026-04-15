@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'django_celery_beat',
     'django_extensions',
+    'storages',
 
     # MineGIS apps
     'apps.authentication',
@@ -46,6 +47,8 @@ INSTALLED_APPS = [
     'apps.gis',
     'apps.vehicle_tracking',
     'apps.audit',
+    'apps.notifications',
+    'django_ratelimit',
 ]
 
 MIDDLEWARE = [
@@ -94,6 +97,14 @@ DATABASES = {
         'OPTIONS': {
             'connect_timeout': 10,
         },
+    }
+}
+
+# ─── Cache (Redis) ──────────────────────────────────────────
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': os.environ.get('REDIS_URL', 'redis://localhost:6379/0'),
     }
 }
 
@@ -149,7 +160,23 @@ CORS_ALLOWED_ORIGINS = [
 ]
 CORS_ALLOW_CREDENTIALS = True
 
-# ─── Static & Media ──────────────────────────────────────────
+# ─── Static & Media (MinIO / S3) ─────────────────────────────
+USE_S3 = os.environ.get('USE_S3', 'False') == 'True'
+
+if USE_S3:
+    # AWS / MinIO settings
+    AWS_ACCESS_KEY_ID = os.environ.get('MINIO_ROOT_USER', 'minegis_admin')
+    AWS_SECRET_ACCESS_KEY = os.environ.get('MINIO_ROOT_PASSWORD', 'MineGIS_S3_2026!')
+    AWS_STORAGE_BUCKET_NAME = os.environ.get('MINIO_BUCKET_NAME', 'minegis-documents')
+    AWS_S3_ENDPOINT_URL = os.environ.get('MINIO_ENDPOINT', 'http://localhost:9000')
+    AWS_S3_REGION_NAME = 'us-east-1' # Default mock region for MinIO
+    AWS_S3_USE_SSL = os.environ.get('MINIO_USE_SSL', 'False') == 'True'
+    AWS_S3_FILE_OVERWRITE = False
+    
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+else:
+    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
@@ -203,6 +230,11 @@ DEFAULT_FROM_EMAIL = os.environ.get(
     'MineGIS-TS <minegis@mines.telangana.gov.in>'
 )
 
+# ─── Twilio / SMS ────────────────────────────────────────────
+TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', '')
+TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', '')
+TWILIO_FROM_NUMBER = os.environ.get('TWILIO_FROM_NUMBER', '+1234567890')
+
 # ─── DRF Spectacular (API Docs) ──────────────────────────────
 SPECTACULAR_SETTINGS = {
     'TITLE': 'MineGIS-TS API',
@@ -221,3 +253,20 @@ SPECTACULAR_SETTINGS = {
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ─── Security Hardening (Phase 7 Audit Compliance) ───────────────────────────
+SECURE_HSTS_SECONDS = 31536000  # 1 year
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'False') == 'True'
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+# CSP is complex, starting with a base policy
+CSP_DEFAULT_SRC = ("'self'",)
+CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", "'unsafe-eval'")
+CSP_STYLE_SRC = ("'self'", "'unsafe-inline'", "fonts.googleapis.com")
+CSP_FONT_SRC = ("'self'", "fonts.gstatic.com")
+SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'False') == 'True'
+CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'False') == 'True'
+REFERRER_POLICY = 'same-origin'

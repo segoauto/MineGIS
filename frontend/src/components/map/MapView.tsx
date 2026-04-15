@@ -9,6 +9,8 @@ import VectorLayer from 'ol/layer/Vector'
 import VectorSource from 'ol/source/Vector'
 import GeoJSON from 'ol/format/GeoJSON'
 import { Style, Fill, Stroke } from 'ol/style'
+import { toLonLat } from 'ol/proj'
+import toast from 'react-hot-toast'
 
 export default function MapView() {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -39,6 +41,37 @@ export default function MapView() {
     if (mapRef.current) {
       mapRef.current.addLayer(drawLayerRef.current)
       setMapReady(true)
+
+      // GIS-19: Right-click coordinate finder
+      const mapViewport = mapRef.current.getViewport()
+      
+      const handleContextMenu = (e: MouseEvent) => {
+        e.preventDefault() // prevent default browser context menu
+        if (!mapRef.current) return
+        
+        const coords = mapRef.current.getEventCoordinate(e)
+        if (coords) {
+          const lonLat = toLonLat(coords)
+          const lat = lonLat[1].toFixed(6)
+          const lon = lonLat[0].toFixed(6)
+          
+          toast.success(`Coordinates copied: ${lat}°N, ${lon}°E`, {
+            icon: '📍',
+            duration: 4000,
+            style: { background: '#1E293B', color: '#F8FAFC', border: '1px solid #334155' }
+          })
+          
+          // Optionally copy to clipboard
+          navigator.clipboard.writeText(`${lat}, ${lon}`).catch(() => {})
+        }
+      }
+
+      mapViewport.addEventListener('contextmenu', handleContextMenu)
+
+      return () => {
+        cleanup()
+        mapViewport.removeEventListener('contextmenu', handleContextMenu)
+      }
     }
     return cleanup
   }, [initMap, mapRef])

@@ -125,7 +125,7 @@ class NetradyneClient:
         POST /api/vehicles/netradyne/webhook/
         """
         from apps.vehicle_tracking.models import Vehicle, VehicleAlert
-        from apps.leases.models import MiningLease
+        from apps.leases.models import MiningLease, InspectionOrder
         from django.utils import timezone
         from django.contrib.gis.geos import Point
 
@@ -157,11 +157,23 @@ class NetradyneClient:
         if payload.get("geofenceId"):
             try:
                 lease = MiningLease.objects.get(lease_id=payload["geofenceId"])
-                # Check authorization
+                # Check authorization (Module 5 / Audit Gap N-01)
                 if event_type == "GEOFENCE_ENTRY":
-                    is_authorized = vehicle.current_lease and vehicle.current_lease.lease_id == lease.lease_id
-                    if not is_authorized:
+                    # Check 1: Static assignment
+                    is_assigned = vehicle.current_lease and vehicle.current_lease.lease_id == lease.lease_id
+                    
+                    # Check 2: Dynamic Inspection Order
+                    has_order = InspectionOrder.objects.filter(
+                        vehicle=vehicle,
+                        lease=lease,
+                        start_date__lte=timezone.now(),
+                        end_date__gte=timezone.now(),
+                        is_active=True
+                    ).exists()
+                    
+                    if not (is_assigned or has_order):
                         alert_type = "GEOFENCE_UNAUTHORIZED"
+                        logger.warning(f"UNAUTHORIZED ENTRY: Vehicle {vehicle.vehicle_number} entered lease {lease.lease_id} without order!")
             except MiningLease.DoesNotExist:
                 pass
 

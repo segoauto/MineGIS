@@ -30,4 +30,10 @@ urlpatterns = [
 
     # Vehicle Tracking
     path('api/', include('apps.vehicle_tracking.urls')),
+
+    # Audit Logs (Module 5)
+    path('api/audit/', include('apps.audit.urls')),
+
+    # Notifications (F-04)
+    path('api/notifications/', include('apps.notifications.urls')),
 ]

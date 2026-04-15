@@ -2,6 +2,28 @@ version: '3.9'
 
 services:
   # ─────────────────────────────────────────────
+  # MinIO (AWS S3-Compatible Object Storage)
+  # ─────────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: minegis_minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minegis_admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-MineGIS_S3_2026!}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────────
   # PostgreSQL + PostGIS
   # ─────────────────────────────────────────────
   db:
@@ -129,7 +151,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: minegis_celery_worker
-    command: celery -A config worker -l info -Q default,vehicle_tracking
+    command: celery -A config worker -l info -Q default,vehicle_tracking,notifications
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.development
       DB_NAME: ${DB_NAME:-minegis_ts}
@@ -222,12 +244,35 @@ services:
       - geoserver
     restart: unless-stopped
 
+  # ─────────────────────────────────────────────
+  # Apache Superset (Statutory BI & MIS)
+  # ─────────────────────────────────────────────
+  superset:
+    image: apache/superset:3.1.0
+    container_name: minegis_superset
+    environment:
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:-superset-secret-key-2026}
+      SUPERSET_DB_URI: postgresql://${DB_USER:-minegis_user}:${DB_PASSWORD:-MineGIS_DB_2026!}@db:5432/${DB_NAME:-minegis_ts}
+      SUPERSET_LOAD_EXAMPLES: "no"
+      CYPRESS_CONFIG: "no"
+    volumes:
+      - ./superset/superset_config.py:/app/pythonpath/superset_config.py
+      - superset_data:/app/superset_home
+    ports:
+      - "8088:8088"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
+  minio_data:
   postgres_data:
   redis_data:
   geoserver_data:
   backend_static:
   backend_media:
+  superset_data:
 
 networks:
   default:

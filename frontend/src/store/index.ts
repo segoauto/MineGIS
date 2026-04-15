@@ -195,8 +195,8 @@ export const useMapStore = create<MapStore>()(
     (set) => ({
       // ─── Initial state ─────────────────────────────────────
       baseLayer: 'osm',
-      zoom: 8,
-      center: [79.5, 18.0],
+      zoom: 11,
+      center: [80.1, 17.5],
       cursorCoords: null,
       temporalDate: '2024-04-01',
 
@@ -232,9 +232,9 @@ export const useMapStore = create<MapStore>()(
       leaseInfoPanelOpen: false,
       vehicleTrackingPanelOpen: false,
       layerPanelOpen: true,
-      drawBoundaryMode: false,
-      drawnBoundaryGeoJSON: null,
       drawnPointCoords: null,
+      reportModalOpen: false,
+      mapRefreshTrigger: 0,
 
       // ─── Actions ──────────────────────────────────────────
       setBaseLayer: (layer) => set({ baseLayer: layer }),

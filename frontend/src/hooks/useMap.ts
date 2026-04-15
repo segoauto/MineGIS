@@ -63,13 +63,14 @@ export function useMap(containerRef: React.RefObject<HTMLDivElement>) {
           source: new XYZ({
             url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
             maxZoom: 19,
-            attributions: '© Esri, DigitalGlobe, GeoEye, Earthstar Geographics, CNES/Airbus DS',
+            attributions: '© Esri, Maxar, Earthstar Geographics, and the GIS User Community',
           }),
         }),
         new TileLayer({
           source: new XYZ({
             url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
             maxZoom: 19,
+            attributions: '© Esri, Garmin, FAO, NOAA',
           }),
         })
       ],
@@ -124,7 +125,8 @@ export function useMap(containerRef: React.RefObject<HTMLDivElement>) {
     const etsWMS = makeTileWMS('ets_survey_points', 'ets_survey_points', false, 1.0, undefined, 'ets_style')
     const approvedPlansWMS = makeTileWMS('approved_mine_plans', 'approved_mine_plans', false, 1.0, undefined, 'approved_plan_style')
     const adminWMS = makeTileWMS('spatial_layers', 'admin_boundary', false, 0.8, "layer_type='ADMIN'", 'admin_style')
-    const transportWMS = makeTileWMS('spatial_layers', 'transport_networks', false, 1.0, "layer_type='TRANSPORT'", 'transport_style')
+    // Transport layers are line geometries — use no specific SLD to let GeoServer use its default line renderer
+    const transportWMS = makeTileWMS('spatial_layers', 'transport_networks', false, 1.0, "layer_type='TRANSPORT'", '')
 
 
 
@@ -148,8 +150,9 @@ export function useMap(containerRef: React.RefObject<HTMLDivElement>) {
         tripLayer,
       ],
       view: new View({
-        center: fromLonLat([79.5, 18.0]),
-        zoom: 8,
+        // Centered on Karimnagar/Hyderabad region where lease data is concentrated
+        center: fromLonLat([80.1, 17.5]),
+        zoom: 11,
         minZoom: 5,
         maxZoom: 20,
       }),
@@ -258,7 +261,7 @@ export function useMap(containerRef: React.RefObject<HTMLDivElement>) {
         
         // If this layer is from GeoServer, we force OpenLayers to bust the cache
         // by pushing a new dynamic param to the source.
-        const source = layer.getSource()
+        const source = (layer as any).getSource()
         if (source instanceof TileWMS) {
           source.updateParams({ '_b': mapRefreshTrigger })
         }

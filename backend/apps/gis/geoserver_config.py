@@ -56,7 +56,7 @@ class GeoServerConfigurator:
             timeout=30,
         )
 
-    def wait_for_geoserver(self, max_attempts: int = 20) -> bool:
+    def wait_for_geoserver(self, max_attempts: int = 100) -> bool:
         """Poll GeoServer until it's ready."""
         for i in range(max_attempts):
             try:

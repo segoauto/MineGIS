@@ -9,20 +9,23 @@ from django.contrib.auth.models import User
 
 class UserProfile(models.Model):
     ROLE_CHOICES = [
-        ('ADMIN', 'System Administrator'),
-        ('DIRECTOR', 'Director of Mines'),
-        ('DISTRICT_OFFICER', 'District Mining Officer'),
-        ('DEPUTY_DIRECTOR', 'Deputy Director'),
-        ('INSPECTOR', 'Mining Inspector'),
-        ('SURVEYOR', 'Survey Officer'),
-        ('ENFORCEMENT', 'Enforcement Officer'),
-        ('VIEWER', 'Read-only Viewer'),
+        ('R01_SUPER_ADMIN', 'Super Admin'),
+        ('R02_STATE_EXEC', 'State Executive'),
+        ('R03_STATE_MGR', 'State Manager'),
+        ('R04_DISTRICT_OFFICER', 'District Officer'),
+        ('R05_FIELD_OFFICER', 'Field Officer'),
+        ('R06_DATA_ENTRY', 'Data Entry Operator'),
+        ('R07_GIS_ANALYST', 'GIS Analyst'),
+        ('R08_AUDITOR', 'Auditor'),
+        ('R09_LEASEHOLDER', 'Leaseholder'),
+        ('R10_HELPDESK', 'Helpdesk'),
+        ('R11_REPORT_VIEWER', 'Report Viewer'),
     ]
 
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name='profile'
     )
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='VIEWER')
+    role = models.CharField(max_length=30, choices=ROLE_CHOICES, default='R11_REPORT_VIEWER')
     district = models.CharField(max_length=100, blank=True)
     phone = models.CharField(max_length=15, blank=True)
     designation = models.CharField(max_length=200, blank=True)

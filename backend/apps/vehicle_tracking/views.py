@@ -13,6 +13,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.filters import OrderingFilter
+from apps.authentication.permissions import RoleBasedPermission
 from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import Vehicle, VehicleLocationHistory, VehicleAlert
@@ -32,7 +33,7 @@ class VehicleViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = Vehicle.objects.select_related('assigned_officer', 'current_lease').all()
     serializer_class = VehicleSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = ['assigned_district', 'vehicle_type', 'is_online']
     ordering_fields = ['vehicle_number', 'assigned_district', 'last_seen']
@@ -145,9 +146,16 @@ def netradyne_webhook(request: Request) -> Response:
             body,
             hashlib.sha256
         ).hexdigest()
-        if not hmac.compare_digest(f'sha256={expected}', signature):
-            logger.warning("Netradyne webhook: invalid signature")
+        
+        # Enforce exact signature match with hmac.compare_digest for timing robustness
+        if not signature or not hmac.compare_digest(f'sha256={expected}', signature):
+            logger.warning("Netradyne webhook: invalid or missing signature")
             return Response({'error': 'Invalid signature'}, status=status.HTTP_401_UNAUTHORIZED)
+    else:
+        # If secret is NOT configured in production, it's a security failure
+        if getattr(settings, 'PROD_MODE', False):
+            logger.error("NETRADYNE_WEBHOOK_SECRET is missing in production!")
+            return Response({'error': 'Configuration error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     payload = request.data
     logger.info(f"Netradyne webhook received: {payload.get('eventType')} for {payload.get('deviceId')}")

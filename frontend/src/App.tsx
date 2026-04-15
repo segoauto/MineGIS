@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
 import { useAuthStore, useMapStore } from './store'
 import LoginPage from './pages/LoginPage'
+import DashboardPage from './pages/DashboardPage'
 import MapView from './components/map/MapView'
 import LayerPanel from './components/map/LayerPanel'
 import LeaseInfoPanel from './components/panels/LeaseInfoPanel'
@@ -14,6 +15,10 @@ import TemporalSlider from './components/ui/TemporalSlider'
 import ComplianceReportModal from './components/reports/ComplianceReportModal'
 import { authApi } from './api/auth'
 import LeaseFormPanel from './components/panels/LeaseFormPanel'
+import GovernancePage from './pages/GovernancePage'
+import SsoRedirectPortal from './pages/SsoRedirectPortal'
+import SsoCallbackPage from './pages/SsoCallbackPage'
+import AnomalyHubPage from './pages/AnomalyHubPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -86,6 +91,32 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/sso-portal" element={<SsoRedirectPortal />} />
+          <Route path="/sso-callback" element={<SsoCallbackPage />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/governance"
+            element={
+              <ProtectedRoute>
+                <GovernancePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/anomaly-hub"
+            element={
+              <ProtectedRoute>
+                <AnomalyHubPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/*"
             element={

@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react'
-import { MapPin, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { MapPin, Lock, Eye, EyeOff, AlertCircle, ShieldCheck } from 'lucide-react'
 import { useAuthStore } from '../store'
 import { authApi } from '../api/auth'
 
@@ -130,6 +130,24 @@ export default function LoginPage() {
                   Sign in to MineGIS-TS
                 </>
               )}
+            </button>
+            
+            <div className="relative py-2">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-map-border"></span>
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-map-panel px-2 text-map-muted">or</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => window.location.assign('/sso-portal')}
+              type="button"
+              className="w-full bg-slate-800 hover:bg-slate-700 text-white font-semibold py-3 rounded-lg transition-all text-sm flex items-center justify-center gap-2 border border-slate-700 shadow-md"
+            >
+               <ShieldCheck size={16} className="text-gov-400" />
+               Sign in with e-Pramaan (NIC)
             </button>
 
             {/* Demo credentials */}

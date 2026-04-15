@@ -9,6 +9,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-client \
     curl \
     netcat-openbsd \
+    libpango-1.0-0 \
+    libpangoft2-1.0-0 \
+    libcairo2 \
+    libjpeg-dev \
+    libopenjp2-7-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Set GDAL/GEOS environment variables for GeoDjango

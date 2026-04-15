@@ -145,3 +145,48 @@ input[type='range']::-webkit-slider-thumb {
 
 /* ─── Selection styles ──────────────────────────────────────── */
 ::selection { background: rgba(50, 120, 201, 0.3); }
+
+/* ─── Print Styles for MIS Reports ──────────────────────────── */
+@media print {
+  /* Hide all unnecessary navigation/interactive elements */
+  .sticky, a, button, nav, .print-hidden {
+    display: none !important;
+  }
+  
+  /* Reset background styles for printing */
+  body, html, #root {
+    background: white !important;
+    color: black !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  
+  /* Make dashboard panels printer friendly */
+  .bg-map-panel\/60, .bg-map-bg {
+    background: white !important;
+    border: 1px solid #ddd !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+    color: black !important;
+    page-break-inside: avoid;
+  }
+
+  /* Dark text overrides */
+  .text-white, .text-map-muted, .text-gov-300, .text-gov-400 {
+    color: black !important;
+  }
+  
+  /* Ensure charts and layout stretch cleanly */
+  .grid {
+    display: block !important;
+  }
+  .grid > div {
+    margin-bottom: 2rem !important;
+  }
+  
+  /* Page settings */
+  @page {
+    size: A4 portrait;
+    margin: 1cm;
+  }
+}

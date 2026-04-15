@@ -102,3 +102,63 @@ class MiningLease(models.Model):
         from django.utils import timezone
         delta = self.valid_till - timezone.now().date()
         return delta.days
+
+class RoyaltyRateConfig(models.Model):
+    """
+    Module 3: Royalty configuration pricing table
+    Allows the Department to update Royalty base rates natively.
+    """
+    mineral_type = models.CharField(max_length=20, choices=MiningLease.MINERAL_CHOICES, unique=True)
+    rate_per_mt = models.DecimalField(max_digits=10, decimal_places=2, help_text="Base Royalty INR per Metric Tonne")
+    effective_from = models.DateField()
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Royalty Rate Configuration'
+        verbose_name_plural = 'Royalty Rate Configurations'
+
+    def __str__(self):
+        return f"{self.get_mineral_type_display()} - {self.rate_per_mt} INR/MT"
+
+class InspectionOrder(models.Model):
+    """
+    Module 4 & 5: Statutory authorization for vehicle entry into mining leases.
+    Used to distinguish between legal transport and unauthorized entry.
+    """
+    order_id = models.CharField(max_length=50, unique=True)
+    lease = models.ForeignKey(
+        MiningLease, on_delete=models.CASCADE, related_name='inspection_orders'
+    )
+    # Using string reference for Vehicle to avoid circular imports if any
+    vehicle = models.ForeignKey(
+        'vehicle_tracking.Vehicle', on_delete=models.CASCADE, related_name='inspection_orders'
+    )
+    
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField()
+    
+    PURPOSE_CHOICES = [
+        ('INSPECTION', 'Official Inspection'),
+        ('TRANSPORT', 'Mineral Transportation'),
+        ('SURVEY', 'DGPS/ETS Survey'),
+        ('RECOVERY', 'Disaster Recovery'),
+    ]
+    purpose = models.CharField(max_length=20, choices=PURPOSE_CHOICES, default='TRANSPORT')
+    
+    authorized_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name='authorized_orders'
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['order_id']),
+            models.Index(fields=['start_date', 'end_date']),
+            models.Index(fields=['is_active']),
+        ]
+        verbose_name = 'Inspection Order'
+        verbose_name_plural = 'Inspection Orders'
+
+    def __str__(self):
+        return f"{self.order_id} — {self.vehicle.vehicle_number} -> {self.lease.lease_id}"
