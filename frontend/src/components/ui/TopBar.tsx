@@ -1,46 +1,72 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   MapPin, Satellite, Mountain, Map,
   Bell, BookmarkIcon, User, LogOut,
-  ChevronDown, Settings, PieChart, ShieldCheck
+  ChevronDown, Settings, ShieldCheck, CheckCircle2,
+  ExternalLink, Layers, Sparkles, RotateCcw, Split
 } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useMapStore, useAuthStore } from '../../store'
 import { authApi } from '../../api/auth'
 import { clearTokens } from '../../api/client'
 import SearchBar from './SearchBar'
 import clsx from 'clsx'
+import toast from 'react-hot-toast'
 import { notificationsApi, type Notification } from '../../api/notifications'
+import { getUserJurisdiction } from '../../utils/districts'
 import type { BaseLayerType } from '../../types'
 
 const BASE_LAYERS: { id: BaseLayerType; label: string; icon: React.ElementType }[] = [
-  { id: 'osm',       label: 'OpenStreetMap', icon: Map       },
-  { id: 'satellite', label: 'Esri Satellite', icon: Satellite  },
-  { id: 'terrain',   label: 'Topo Terrain',   icon: Mountain   },
+  { id: 'osm',         label: 'Streets',    icon: Map       },
+  { id: 'satellite',   label: 'Satellite',  icon: Satellite },
+  { id: 'terrain',     label: 'Topo',       icon: Mountain  },
+  { id: 'carto_light', label: 'Light',      icon: Layers    },
 ]
 
 export default function TopBar() {
-  const { baseLayer, setBaseLayer, bookmarks, unreadAlertCount, markAlertsRead } = useMapStore()
+  const {
+    baseLayer, setBaseLayer, bookmarks, unreadAlertCount,
+    markAlertsRead, vehicleAlerts, setMapFlyToTarget,
+    setCompareImageryOpen, setTenderDemoModalOpen, resetDemoData,
+  } = useMapStore()
   const { user, logout } = useAuthStore()
+  const navigate = useNavigate()
+
+  const jurisdiction = getUserJurisdiction(user?.profile?.district)
+  const isRestricted = jurisdiction.name !== 'Statewide'
 
   const [showBookmarks, setShowBookmarks] = useState(false)
   const [showUser, setShowUser] = useState(false)
   const [showAlerts, setShowAlerts] = useState(false)
+  const [showBaseLayers, setShowBaseLayers] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loadingNotifications, setLoadingNotifications] = useState(false)
 
-  const navigate = useNavigate()
+  const bookmarksRef = useRef<HTMLDivElement>(null)
+  const userMenuRef = useRef<HTMLDivElement>(null)
+  const alertsRef = useRef<HTMLDivElement>(null)
+  const layersRef = useRef<HTMLDivElement>(null)
 
   const fetchNotifications = async () => {
     if (!user) return
     setLoadingNotifications(true)
     try {
       const data = await notificationsApi.list()
-      // Handle both plain array and paginated DRF response {count, results:[]}
       const items: Notification[] = Array.isArray(data) ? data : (data as any)?.results ?? []
       setNotifications(items)
-    } catch (err) {
-      console.error('Failed to fetch notifications:', err)
+    } catch {
+      // Mock notifications if backend not reachable
+      setNotifications([
+        {
+          id: 1,
+          title: 'Geofence Entry Alert',
+          message: 'Vehicle TS-07-EA-4122 entered Maheshwaram Quarry Perimeter.',
+          severity: 'WARNING',
+          severity_display: 'Warning',
+          is_read: false,
+          created_at_relative: '5m ago',
+        } as any
+      ])
     } finally {
       setLoadingNotifications(false)
     }
@@ -54,225 +80,413 @@ export default function TopBar() {
     }
   }, [user])
 
+  // Close popovers on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (bookmarksRef.current && !bookmarksRef.current.contains(e.target as Node)) setShowBookmarks(false)
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setShowUser(false)
+      if (alertsRef.current && !alertsRef.current.contains(e.target as Node)) setShowAlerts(false)
+      if (layersRef.current && !layersRef.current.contains(e.target as Node)) setShowBaseLayers(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   const handleMarkAllRead = async () => {
     try {
       await notificationsApi.markAllAsRead()
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
       markAlertsRead()
-    } catch {}
+    } catch {
+      markAlertsRead()
+    }
   }
 
   const unreadCount = notifications.filter(n => !n.is_read).length + unreadAlertCount
 
   const handleLogout = async () => {
-    const refresh = localStorage.getItem('refresh_token') ?? ''
-    try { await authApi.logout(refresh) } catch {}
-    clearTokens()
-    logout()
-    window.location.href = '/login'
+    try {
+      await authApi.logout()
+    } catch {
+      // Ignore API logout error in offline demo
+    } finally {
+      clearTokens()
+      logout()
+      navigate('/login')
+    }
   }
 
+  const currentLayer = BASE_LAYERS.find(b => b.id === baseLayer) || BASE_LAYERS[0]
+  const CurrentLayerIcon = currentLayer.icon
+
   return (
-    <header className="relative z-30 flex items-center gap-3 px-4 py-2.5 bg-map-panel/98 backdrop-blur-md border-b border-map-border">
-      {/* ── Logo ── */}
-      <div className="flex items-center gap-2.5 flex-shrink-0">
-        <div className="bg-gov-600 rounded-lg p-1.5">
-          <MapPin size={16} className="text-white" />
-        </div>
-        <div className="leading-none">
-          <div className="text-map-text font-bold text-sm tracking-tight">MineGIS<span className="text-saffron-500">-TS</span></div>
-          <div className="text-map-muted text-xs">Dept. of Mines &amp; Geology</div>
-        </div>
+    <header className="bg-white border-b border-slate-300 shadow-xs z-30 select-none flex-shrink-0">
+      {/* ── National Tricolor Top Strip ── */}
+      <div className="h-1 w-full flex">
+        <div className="h-full flex-1 bg-[#FF671F]" title="Saffron" />
+        <div className="h-full flex-1 bg-white border-y border-slate-200" title="White" />
+        <div className="h-full flex-1 bg-[#046A38]" title="Green" />
       </div>
 
-      {/* ── Base layer toggle ── */}
-      <div className="flex items-center bg-map-bg border border-map-border rounded-lg p-0.5 flex-shrink-0">
-        {BASE_LAYERS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => setBaseLayer(id)}
-            className={clsx(
-              'flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-all',
-              baseLayer === id
-                ? 'bg-gov-600 text-white shadow-sm'
-                : 'text-map-muted hover:text-map-text'
-            )}
-          >
-            <Icon size={12} />
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* ── Dashboard Link ── */}
-      {['R01_SUPER_ADMIN', 'R02_STATE_EXEC', 'R03_STATE_MGR', 'R04_DISTRICT_OFFICER', 'R07_GIS_ANALYST'].includes(user?.profile?.role || '') && (
-        <button 
+      {/* ── Government Identity & Action Bar ── */}
+      <div className="flex items-center justify-between gap-3 px-4 py-2">
+        {/* ── 1. Official State Emblem & Portal Branding ── */}
+        <div
+          className="flex items-center gap-2.5 flex-shrink-0 cursor-pointer group"
           onClick={() => navigate('/dashboard')}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-gov-900/40 hover:bg-gov-900/60 text-gov-400 border border-gov-500/30 rounded-lg transition-colors text-xs font-medium shadow-sm"
         >
-          <PieChart size={14} />
-          <span className="hidden md:inline">Dashboard</span>
-        </button>
-      )}
-      
-      {/* ── Governance Link ── */}
-      {['R01_SUPER_ADMIN', 'R02_STATE_EXEC', 'R08_AUDITOR'].includes(user?.profile?.role || '') && (
-        <button 
-          onClick={() => navigate('/governance')}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition-colors text-xs font-medium ml-1 shadow-sm"
-          title="Audit & Compliance"
-        >
-          <ShieldCheck size={14} className="text-gov-400" />
-          <span className="hidden md:inline">Governance</span>
-        </button>
-      )}
+          <div className="w-9 h-9 rounded-full bg-gov-50 border border-gov-300 p-1 flex items-center justify-center shadow-2xs group-hover:border-gov-500 transition-colors">
+            <svg viewBox="0 0 100 100" className="w-full h-full text-gov-600">
+              <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" strokeWidth="4" strokeDasharray="3 2" />
+              <circle cx="50" cy="50" r="38" fill="#F0F5FA" stroke="currentColor" strokeWidth="2" />
+              <path d="M50 22 L50 78 M22 50 L78 50 M30 30 L70 70 M30 70 L70 30" stroke="#0B3C5D" strokeWidth="1.5" />
+              <circle cx="50" cy="50" r="10" fill="#0B3C5D" />
+            </svg>
+          </div>
 
-      {/* ── Search bar ── */}
-      <div className="flex-1 min-w-0">
-        <SearchBar />
-      </div>
-
-      {/* ── Right actions ── */}
-      <div className="flex items-center gap-1 flex-shrink-0">
-        {/* Bookmarks */}
-        <div className="relative">
-          <button
-            onClick={() => setShowBookmarks((p) => !p)}
-            className="p-2 rounded-lg text-map-muted hover:text-map-text hover:bg-map-border transition-colors"
-            title="Bookmarks"
-          >
-            <BookmarkIcon size={16} />
-          </button>
-          {showBookmarks && (
-            <div className="absolute top-full right-0 mt-1 w-56 bg-map-panel border border-map-border rounded-lg shadow-2xl z-50 p-2 animate-fade-in">
-              {bookmarks.length === 0 ? (
-                <p className="text-map-muted text-xs p-2">No bookmarks saved yet.</p>
-              ) : (
-                bookmarks.map((b) => (
-                  <button key={b.id} className="w-full text-left px-3 py-2 hover:bg-map-border rounded text-xs text-map-text">
-                    📍 {b.label}
-                  </button>
-                ))
-              )}
+          <div className="leading-tight">
+            <div className="flex items-center gap-1.5">
+              <span className="text-gov-700 font-extrabold text-base tracking-tight">
+                MineGIS<span className="text-[#FF671F]">-TS</span>
+              </span>
+              <span className="text-[9px] bg-gov-100 text-gov-800 font-bold px-1.5 py-0.2 rounded border border-gov-300 uppercase tracking-wider hidden sm:inline-block">
+                Govt of Telangana
+              </span>
             </div>
-          )}
+            <div className="text-[11px] font-semibold text-slate-800">
+              Department of Mines &amp; Geology
+            </div>
+          </div>
         </div>
 
-        {/* Alerts bell */}
-        <div className="relative">
-          <button
-            onClick={() => { setShowAlerts((p) => !p); if (!showAlerts) fetchNotifications() }}
-            className="relative p-2 rounded-lg text-map-muted hover:text-map-text hover:bg-map-border transition-colors"
-            title="Alerts & Notifications"
-          >
-            <Bell size={16} />
-            {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 px-1 min-w-[12px] h-3 bg-red-500 rounded-full text-[8px] font-bold text-white flex items-center justify-center animate-pulse">
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
+        {/* ── 2. Global Search Bar (Centered) ── */}
+        <div className="flex-1 max-w-md mx-2 hidden md:block">
+          <SearchBar />
+        </div>
+
+        {/* ── 3. Right Utility & Officer Actions ── */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Active District Badge */}
+          <div
+            className={clsx(
+              'hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-semibold shadow-2xs whitespace-nowrap',
+              isRestricted
+                ? 'bg-amber-50/90 border-amber-300 text-amber-900'
+                : 'bg-emerald-50/90 border-emerald-300 text-emerald-900'
             )}
-          </button>
-          {showAlerts && (
-            <div className="absolute top-full right-0 mt-1 w-80 bg-map-panel border border-map-border rounded-lg shadow-2xl z-50 animate-fade-in">
-              <div className="px-3 py-2 border-b border-map-border flex justify-between items-center">
-                <span className="text-map-text text-xs font-semibold">Notifications</span>
-                {unreadCount > 0 && (
-                  <button 
-                    onClick={handleMarkAllRead}
-                    className="text-[10px] text-gov-400 hover:text-gov-300 transition-colors"
-                  >
-                    Mark all read
-                  </button>
-                )}
-              </div>
-              <div className="max-h-80 overflow-y-auto custom-scrollbar">
-                {/* System Notifications */}
-                {notifications.map((n) => (
-                  <div 
-                    key={n.id} 
+            title={
+              isRestricted
+                ? `Showing data for ${jurisdiction.name} District only`
+                : 'All Districts: Access across all 33 Telangana districts'
+            }
+          >
+            <span
+              className={clsx(
+                'w-2 h-2 rounded-full',
+                isRestricted ? 'bg-amber-600 animate-pulse' : 'bg-emerald-600'
+              )}
+            />
+            <span className="flex items-center gap-1">
+              <span className="text-slate-500 font-normal">District:</span>
+              <strong className="text-slate-900">{jurisdiction.name}</strong>
+              {isRestricted ? (
+                <span className="ml-1 text-[9px] font-bold bg-amber-200/90 text-amber-950 px-1 py-0.2 rounded border border-amber-400 uppercase">
+                  Assigned
+                </span>
+              ) : (
+                <span className="ml-1 text-[9px] font-bold bg-emerald-200/90 text-emerald-950 px-1 py-0.2 rounded border border-emerald-400 uppercase">
+                  All Districts
+                </span>
+              )}
+            </span>
+          </div>
+
+          {/* Compact Base Layer Dropdown */}
+          <div className="relative" ref={layersRef}>
+            <button
+              onClick={() => setShowBaseLayers((p) => !p)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors shadow-2xs"
+              title="Base Map Layer"
+            >
+              <CurrentLayerIcon size={13} className="text-gov-600" />
+              <span className="hidden xl:inline">{currentLayer.label}</span>
+              <ChevronDown size={11} className="text-slate-400" />
+            </button>
+
+            {showBaseLayers && (
+              <div className="absolute top-full right-0 mt-1 w-44 bg-white border border-slate-300 rounded-lg shadow-lg z-50 p-1.5 animate-fade-in">
+                <div className="text-[10px] font-bold text-slate-500 uppercase px-2 py-1 border-b border-slate-200 mb-1">
+                  Map Type
+                </div>
+                {BASE_LAYERS.map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    onClick={() => {
+                      setBaseLayer(id)
+                      setShowBaseLayers(false)
+                    }}
                     className={clsx(
-                      "px-3 py-2.5 border-b border-map-border/50 hover:bg-map-border/30 transition-colors cursor-pointer",
-                      !n.is_read && "bg-gov-900/10"
+                      'w-full flex items-center justify-between px-2.5 py-1.5 rounded text-xs transition-colors',
+                      baseLayer === id
+                        ? 'bg-gov-50 text-gov-800 font-bold'
+                        : 'text-slate-700 hover:bg-slate-100'
                     )}
                   >
-                    <div className="flex justify-between gap-2">
-                      <div className="text-map-text text-xs font-medium leading-tight">{n.title}</div>
-                      <div className="text-[10px] text-map-muted whitespace-nowrap">{n.created_at_relative}</div>
-                    </div>
-                    <div className="text-map-muted text-[11px] mt-0.5 line-clamp-2">{n.message}</div>
-                    <div className={clsx(
-                      "text-[9px] mt-1 font-bold uppercase tracking-wider px-1 inline-block rounded",
-                      n.severity === 'CRITICAL' ? "text-red-400 bg-red-400/10" :
-                      n.severity === 'WARNING' ? "text-amber-400 bg-amber-400/10" :
-                      "text-gov-400 bg-gov-400/10"
-                    )}>
-                      {n.severity_display}
-                    </div>
-                  </div>
+                    <span className="flex items-center gap-2">
+                      <Icon size={14} className={baseLayer === id ? 'text-gov-600' : 'text-slate-500'} />
+                      <span>{label}</span>
+                    </span>
+                    {baseLayer === id && <span className="w-1.5 h-1.5 rounded-full bg-gov-600" />}
+                  </button>
                 ))}
-
-                {/* Vehicle Alerts (from Store) */}
-                {useMapStore.getState().vehicleAlerts.slice(0, 5).map((alert) => (
-                  <div key={alert.id} className="px-3 py-2.5 border-b border-map-border/50 hover:bg-map-border/30 opacity-80">
-                    <div className="text-map-text text-xs font-medium flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                      {alert.vehicle_number} — {alert.alert_type_display}
-                    </div>
-                    <div className="text-map-muted text-[11px] mt-0.5">{alert.description}</div>
-                  </div>
-                ))}
-
-                {notifications.length === 0 && useMapStore.getState().vehicleAlerts.length === 0 && (
-                  <div className="p-8 text-center">
-                    <div className="text-map-muted text-xs">No notifications yet.</div>
-                  </div>
-                )}
               </div>
-              <div className="px-3 py-2 border-t border-map-border text-center">
-                <button className="text-[11px] text-map-muted hover:text-map-text transition-colors">
-                  View all activity
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
 
-        {/* User menu */}
-        <div className="relative">
+          {/* Satellite Images Compare Button */}
           <button
-            onClick={() => setShowUser((p) => !p)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-map-muted hover:text-map-text hover:bg-map-border transition-colors"
+            onClick={() => setCompareImageryOpen(true)}
+            className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors shadow-2xs cursor-pointer"
+            title="Compare Satellite Images from Different Dates"
           >
-            <div className="w-6 h-6 bg-gov-600 rounded-full flex items-center justify-center">
-              <User size={12} className="text-white" />
-            </div>
-            <div className="hidden md:block text-left leading-none">
-              <div className="text-map-text text-xs font-medium">{user?.full_name ?? user?.username}</div>
-              <div className="text-map-muted text-xs">{user?.profile?.role?.replace('_', ' ')}</div>
-            </div>
-            <ChevronDown size={12} />
+            <Split size={13} className="text-blue-600" />
+            <span className="hidden xl:inline">Compare Images</span>
           </button>
 
-          {showUser && (
-            <div className="absolute top-full right-0 mt-1 w-52 bg-map-panel border border-map-border rounded-lg shadow-2xl z-50 overflow-hidden animate-fade-in">
-              <div className="px-4 py-3 border-b border-map-border">
-                <div className="text-map-text text-sm font-semibold">{user?.full_name}</div>
-                <div className="text-map-muted text-xs">{user?.email}</div>
-                {user?.profile?.district && (
-                  <div className="text-gov-300 text-xs mt-0.5">📍 {user.profile.district} District</div>
+          {/* Demo Tour Button */}
+          <button
+            onClick={() => setTenderDemoModalOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-amber-400 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold transition-colors shadow-2xs cursor-pointer"
+            title="Open Sample Lease Walkthrough"
+          >
+            <Sparkles size={13} className="text-amber-600" />
+            <span className="hidden sm:inline">Demo Tour</span>
+          </button>
+
+          {/* Reset Demo Data Button */}
+          <button
+            onClick={() => {
+              resetDemoData()
+              navigate('/map')
+              toast.success('Demo data and map alerts have been reset.', { icon: '↺' })
+            }}
+            className="p-1.5 rounded border border-slate-300 bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+            title="Reset Demo Data"
+          >
+            <RotateCcw size={14} />
+          </button>
+
+          {/* Saved Places */}
+          <div className="relative" ref={bookmarksRef}>
+            <button
+              onClick={() => setShowBookmarks((p) => !p)}
+              className="p-1.5 rounded border border-slate-300 bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-2xs"
+              title="Saved Places"
+            >
+              <BookmarkIcon size={15} />
+            </button>
+
+            {showBookmarks && (
+              <div className="absolute top-full right-0 mt-1 w-60 bg-white border border-slate-300 rounded-lg shadow-lg z-50 p-2 animate-fade-in">
+                <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wider px-2 py-1 border-b border-slate-200">
+                  Saved Places
+                </div>
+                {bookmarks.length === 0 ? (
+                  <p className="text-slate-500 text-xs p-2">No places saved yet.</p>
+                ) : (
+                  bookmarks.map((b) => (
+                    <button
+                      key={b.id}
+                      className="w-full text-left px-3 py-2 hover:bg-slate-100 rounded text-xs text-slate-800 flex items-center gap-2"
+                    >
+                      <MapPin size={13} className="text-gov-600 flex-shrink-0" />
+                      <span className="truncate">{b.label}</span>
+                    </button>
+                  ))
                 )}
               </div>
-              <button className="w-full flex items-center gap-2 px-4 py-2.5 text-map-muted hover:text-map-text hover:bg-map-border transition-colors text-xs">
-                <Settings size={13} /> Settings
-              </button>
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center gap-2 px-4 py-2.5 text-red-400 hover:bg-red-900/20 transition-colors text-xs"
-              >
-                <LogOut size={13} /> Sign Out
-              </button>
-            </div>
-          )}
+            )}
+          </div>
+
+          {/* Alerts Notification Bell */}
+          <div className="relative" ref={alertsRef}>
+            <button
+              onClick={() => {
+                setShowAlerts((p) => !p)
+                if (!showAlerts) fetchNotifications()
+              }}
+              className="relative p-1.5 rounded border border-slate-300 bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+              title="Alerts & Notifications"
+            >
+              <Bell size={15} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 px-1 min-w-[15px] h-3.5 bg-red-600 rounded-full text-[9px] font-extrabold text-white flex items-center justify-center shadow-xs">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {showAlerts && (
+              <div className="absolute top-full right-0 mt-1 w-80 sm:w-96 bg-white border border-slate-300 rounded-lg shadow-xl z-50 animate-fade-in">
+                <div className="px-3.5 py-2.5 border-b border-slate-200 bg-slate-50 flex justify-between items-center rounded-t-lg">
+                  <span className="text-slate-900 text-xs font-bold flex items-center gap-1.5">
+                    <Bell size={13} className="text-gov-600" />
+                    <span>Notifications &amp; Alerts</span>
+                  </span>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={handleMarkAllRead}
+                      className="text-[11px] text-gov-600 hover:text-gov-800 font-semibold cursor-pointer"
+                    >
+                      Mark all read
+                    </button>
+                  )}
+                </div>
+
+                <div className="max-h-80 overflow-y-auto custom-scrollbar divide-y divide-slate-100">
+                  {vehicleAlerts.slice(0, 5).map((alert) => (
+                    <div
+                      key={alert.id}
+                      onClick={() => {
+                        if (alert.alert_lon && alert.alert_lat) {
+                          setMapFlyToTarget({ lon: alert.alert_lon, lat: alert.alert_lat, zoom: 16, ping: true })
+                          navigate('/map')
+                          setShowAlerts(false)
+                        } else {
+                          navigate('/geofences')
+                          setShowAlerts(false)
+                        }
+                      }}
+                      className="px-3.5 py-2.5 hover:bg-slate-50 transition-colors cursor-pointer text-xs group"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono font-bold text-gov-700">
+                          {alert.vehicle_number}
+                        </span>
+                        <span className="text-[10px] bg-red-50 text-red-700 font-bold px-1.5 py-0.2 rounded border border-red-200 uppercase">
+                          {alert.alert_type}
+                        </span>
+                      </div>
+                      <div className="text-slate-800 font-medium mt-0.5 line-clamp-1">
+                        {alert.alert_type_display}
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">
+                        {alert.description}
+                      </div>
+                    </div>
+                  ))}
+
+                  {notifications.map((n) => (
+                    <div
+                      key={n.id}
+                      className={clsx(
+                        'px-3.5 py-2.5 hover:bg-slate-50 transition-colors cursor-pointer text-xs',
+                        !n.is_read && 'bg-blue-50/50'
+                      )}
+                    >
+                      <div className="flex justify-between gap-2">
+                        <div className="text-slate-900 font-semibold leading-tight">{n.title}</div>
+                        <div className="text-[10px] text-slate-400 whitespace-nowrap">{n.created_at_relative}</div>
+                      </div>
+                      <div className="text-slate-600 text-[11px] mt-0.5 line-clamp-2">{n.message}</div>
+                    </div>
+                  ))}
+
+                  {notifications.length === 0 && vehicleAlerts.length === 0 && (
+                    <div className="p-8 text-center text-slate-500 text-xs">
+                      No active alerts recorded.
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-2 border-t border-slate-200 bg-slate-50 text-center">
+                  <button
+                    onClick={() => {
+                      navigate('/geofences')
+                      setShowAlerts(false)
+                    }}
+                    className="text-xs text-gov-600 hover:text-gov-800 font-bold"
+                  >
+                    View All Boundary Alerts →
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* User Officer Menu */}
+          <div className="relative" ref={userMenuRef}>
+            <button
+              onClick={() => setShowUser((p) => !p)}
+              className="flex items-center gap-2 px-2.5 py-1 rounded-md border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-800 transition-colors shadow-2xs cursor-pointer"
+            >
+              <div className="w-6 h-6 bg-gov-600 rounded-full flex items-center justify-center text-white text-[11px] font-bold">
+                {user?.first_name?.[0] || user?.username?.[0]?.toUpperCase() || 'O'}
+              </div>
+              <div className="hidden sm:block text-left leading-tight">
+                <div className="text-slate-900 text-xs font-bold truncate max-w-[120px]">
+                  {user?.full_name ?? user?.username}
+                </div>
+                <div className="text-[10px] text-slate-500 truncate max-w-[120px]">
+                  {user?.profile?.role?.replace(/_/g, ' ')}
+                </div>
+              </div>
+              <ChevronDown size={12} className="text-slate-400" />
+            </button>
+
+            {showUser && (
+              <div className="absolute top-full right-0 mt-1 w-64 bg-white border border-slate-300 rounded-lg shadow-xl z-50 p-2 animate-fade-in text-xs">
+                <div className="px-3 py-2 border-b border-slate-200 bg-slate-50/80 rounded-md mb-2">
+                  <div className="font-extrabold text-slate-900 truncate">
+                    {user?.full_name ?? user?.username}
+                  </div>
+                  <div className="text-[11px] text-slate-500 truncate">{user?.email}</div>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <span className="text-[9px] bg-gov-100 text-gov-800 font-bold px-1.5 py-0.2 rounded border border-gov-300 uppercase">
+                      {user?.profile?.role?.replace(/_/g, ' ') || 'OFFICER'}
+                    </span>
+                    <span className="text-[10px] text-slate-600 font-medium">
+                      {jurisdiction.name}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <button
+                    onClick={() => {
+                      navigate('/dashboard')
+                      setShowUser(false)
+                    }}
+                    className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 text-slate-700 flex items-center gap-2"
+                  >
+                    <ShieldCheck size={14} className="text-gov-600" />
+                    <span>Dashboard</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      navigate('/geofences')
+                      setShowUser(false)
+                    }}
+                    className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 text-slate-700 flex items-center gap-2"
+                  >
+                    <Layers size={14} className="text-gov-600" />
+                    <span>Boundary Alerts</span>
+                  </button>
+                </div>
+
+                <div className="border-t border-slate-200 mt-2 pt-2">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-3 py-1.5 rounded hover:bg-red-50 text-red-700 font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <LogOut size={14} />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

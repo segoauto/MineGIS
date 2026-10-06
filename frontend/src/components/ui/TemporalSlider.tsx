@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Calendar, FastForward, Play, Pause } from 'lucide-react'
+import { Calendar, FastForward, Play, Pause, Split } from 'lucide-react'
 import { useMapStore } from '../../store'
 import clsx from 'clsx'
 
@@ -17,6 +17,7 @@ export default function TemporalSlider() {
   const baseLayer = useMapStore(s => s.baseLayer)
   const temporalDate = useMapStore(s => s.temporalDate)
   const setTemporalDate = useMapStore(s => s.setTemporalDate)
+  const setCompareImageryOpen = useMapStore(s => s.setCompareImageryOpen)
   const [isPlaying, setIsPlaying] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -50,23 +51,31 @@ export default function TemporalSlider() {
   if (baseLayer !== 'satellite') return null
 
   return (
-    <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 w-[400px] bg-map-panel/95 backdrop-blur-md border border-map-border rounded-xl px-4 py-3 shadow-2xl transition-all">
+    <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 w-[420px] bg-white border border-slate-300 rounded-lg px-4 py-3 shadow-lg transition-all">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <Calendar size={14} className="text-gov-400" />
-          <span className="text-map-text text-xs font-semibold">Temporal Satellite Imagery</span>
+          <Calendar size={14} className="text-gov-600" />
+          <span className="text-slate-800 text-xs font-bold">Temporal Satellite Time-Lapse</span>
         </div>
         
         <div className="flex items-center gap-2">
           {loading && (
             <span className="flex h-2 w-2 mr-1">
               <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-gov-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-gov-500"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-gov-600"></span>
             </span>
           )}
-          <span className="text-gov-300 text-xs font-mono font-bold bg-gov-900/40 px-2 py-0.5 rounded border border-gov-700/50">
+          <span className="text-gov-800 text-xs font-mono font-bold bg-gov-50 px-2 py-0.5 rounded border border-gov-300 shadow-2xs">
             {temporalDate}
           </span>
+          <button
+            onClick={() => setCompareImageryOpen(true)}
+            className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 font-bold transition-colors cursor-pointer"
+            title="Open Split-Screen Dual-Epoch Comparison"
+          >
+            <Split size={12} className="text-blue-600" />
+            <span>Compare</span>
+          </button>
         </div>
       </div>
 
@@ -79,9 +88,10 @@ export default function TemporalSlider() {
             setIsPlaying(!isPlaying)
           }}
           className={clsx(
-            "p-1.5 rounded-full transition-colors",
-            isPlaying ? "bg-red-500/20 text-red-400" : "bg-gov-600/20 text-gov-400 hover:bg-gov-600/40"
+            "p-1.5 rounded-md border transition-colors",
+            isPlaying ? "bg-red-50 text-red-700 border-red-300" : "bg-gov-50 text-gov-700 border-gov-300 hover:bg-gov-100"
           )}
+          title={isPlaying ? "Pause" : "Play time-lapse"}
         >
           {isPlaying ? <Pause size={14} /> : <Play size={14} />}
         </button>
@@ -96,13 +106,13 @@ export default function TemporalSlider() {
                setIsPlaying(false)
                handleDateChange(TEMPORAL_DATES[parseInt(e.target.value)])
             }}
-            className="w-full h-1 bg-map-border rounded-lg appearance-none cursor-pointer accent-gov-400"
+            className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-gov-600"
           />
           
           {/* Tick marks */}
-          <div className="absolute top-full mt-1 w-full flex justify-between text-[9px] text-map-muted pointer-events-none px-1">
+          <div className="absolute top-full mt-1 w-full flex justify-between text-[9px] text-slate-500 font-semibold pointer-events-none px-1">
              {TEMPORAL_DATES.map((date, i) => (
-               <span key={date} className={clsx(safeIndex === i && "text-gov-400 font-bold")}>
+               <span key={date} className={clsx(safeIndex === i && "text-gov-700 font-bold")}>
                  {date.split('-')[0]}
                </span>
              ))}

@@ -3,13 +3,15 @@ import { useMap } from '../../hooks/useMap'
 import { useWebSocket } from '../../hooks/useWebSocket'
 import { useMapStore } from '../../store'
 import VehicleOverlays from './VehicleOverlays'
+import GeofenceAlertPopup from './GeofenceAlertPopup'
 import { vehiclesApi } from '../../api/vehicles'
 import Draw from 'ol/interaction/Draw'
 import VectorLayer from 'ol/layer/Vector'
 import VectorSource from 'ol/source/Vector'
 import GeoJSON from 'ol/format/GeoJSON'
-import { Style, Fill, Stroke } from 'ol/style'
+import { Style, Fill, Stroke, Circle as CircleStyle } from 'ol/style'
 import { toLonLat } from 'ol/proj'
+import { getLength, getArea } from 'ol/sphere'
 import toast from 'react-hot-toast'
 
 export default function MapView() {
@@ -17,8 +19,9 @@ export default function MapView() {
   const { initMap, mapRef, updateTripLayer, clearTripLayer, flyTo } = useMap(containerRef)
   const [mapReady, setMapReady] = useState(false)
   const drawRef = useRef<Draw | null>(null)
+  const measureRef = useRef<Draw | null>(null)
   const drawSourceRef = useRef<VectorSource>(new VectorSource())
-  const drawLayerRef = useRef<VectorLayer<VectorSource>>(new VectorLayer({
+  const drawLayerRef = useRef<VectorLayer<any>>(new VectorLayer({
     source: drawSourceRef.current,
     style: new Style({
       fill: new Fill({ color: 'rgba(16, 185, 129, 0.15)' }),
@@ -27,19 +30,46 @@ export default function MapView() {
     zIndex: 200,
   }))
 
+  const measureSourceRef = useRef<VectorSource>(new VectorSource())
+  const measureLayerRef = useRef<VectorLayer<any>>(new VectorLayer({
+    source: measureSourceRef.current,
+    style: new Style({
+      fill: new Fill({ color: 'rgba(37, 99, 235, 0.2)' }),
+      stroke: new Stroke({ color: '#2563EB', width: 3, lineDash: [6, 4] }),
+      image: new CircleStyle({
+        radius: 6,
+        fill: new Fill({ color: '#2563EB' }),
+        stroke: new Stroke({ color: '#FFFFFF', width: 2 }),
+      }),
+    }),
+    zIndex: 210,
+  }))
+
   // Initialize WebSocket (lives at map level to survive tab switches)
   useWebSocket()
 
   const {
     cursorCoords, selectedVehicleId, vehicles, selectedLeaseData,
     drawBoundaryMode, setDrawBoundaryMode, openLeaseCreateForm,
-    setDrawnPointCoords,
+    setDrawnPointCoords, activeTool, setActiveTool, setMeasurementResult,
+    mapFlyToTarget, setMapFlyToTarget, triggerGeofenceBreachDemo,
+    setVehicles,
   } = useMapStore()
+
+  // Load and ensure vehicles are showcased immediately on map mount
+  useEffect(() => {
+    vehiclesApi.list().then((data) => {
+      if (data && data.length > 0) {
+        setVehicles(data)
+      }
+    })
+  }, [setVehicles])
 
   useEffect(() => {
     const cleanup = initMap()
     if (mapRef.current) {
       mapRef.current.addLayer(drawLayerRef.current)
+      mapRef.current.addLayer(measureLayerRef.current)
       setMapReady(true)
 
       // GIS-19: Right-click coordinate finder
@@ -69,12 +99,106 @@ export default function MapView() {
       mapViewport.addEventListener('contextmenu', handleContextMenu)
 
       return () => {
-        cleanup()
+        if (cleanup) cleanup()
         mapViewport.removeEventListener('contextmenu', handleContextMenu)
       }
     }
     return cleanup
   }, [initMap, mapRef])
+
+  // ── Active Map FlyTo Target (Alert / Demo Zoom) ───────────────────────────
+  useEffect(() => {
+    if (!mapReady || !mapFlyToTarget) return
+    flyTo(mapFlyToTarget.lon, mapFlyToTarget.lat, mapFlyToTarget.zoom ?? 15)
+    if (mapFlyToTarget.ping) {
+      toast.success(`Map centered on alert target: ${mapFlyToTarget.lat.toFixed(4)}°N, ${mapFlyToTarget.lon.toFixed(4)}°E`, {
+        icon: '🎯',
+        style: { background: '#0F172A', color: '#38BDF8', border: '1px solid #0284C7' }
+      })
+    }
+    setMapFlyToTarget(null)
+  }, [mapFlyToTarget, mapReady, flyTo, setMapFlyToTarget])
+
+  // ── Interactive Distance & Area Measurement Interaction ──────────────────
+  useEffect(() => {
+    if (!mapRef.current || !mapReady) return
+    const map = mapRef.current
+
+    if (activeTool === 'measure_distance' || activeTool === 'measure_area') {
+      measureSourceRef.current.clear()
+      const draw = new Draw({
+        source: measureSourceRef.current,
+        type: activeTool === 'measure_distance' ? 'LineString' : 'Polygon',
+        style: new Style({
+          fill: new Fill({ color: 'rgba(37, 99, 235, 0.25)' }),
+          stroke: new Stroke({ color: '#2563EB', width: 3, lineDash: [6, 4] }),
+          image: new CircleStyle({
+            radius: 6,
+            fill: new Fill({ color: '#2563EB' }),
+            stroke: new Stroke({ color: '#FFFFFF', width: 2 }),
+          }),
+        }),
+      })
+
+      draw.on('drawstart', (evt) => {
+        measureSourceRef.current.clear()
+        const geom = evt.feature.getGeometry()!
+        geom.on('change', () => {
+          if (activeTool === 'measure_distance') {
+            const length = getLength(geom)
+            const unit = length >= 1000 ? 'km' : 'm'
+            const formatted = length >= 1000 ? `${(length / 1000).toFixed(2)} km` : `${Math.round(length)} m`
+            setMeasurementResult({ type: 'distance', value: length, unit, formatted })
+          } else if (activeTool === 'measure_area') {
+            const area = getArea(geom)
+            const ha = (area / 10000).toFixed(2)
+            const sqkm = (area / 1000000).toFixed(3)
+            const formatted = `${ha} Ha (${sqkm} km²)`
+            setMeasurementResult({ type: 'area', value: area / 10000, unit: 'Ha', formatted })
+          }
+        })
+      })
+
+      draw.on('drawend', (evt) => {
+        const geom = evt.feature.getGeometry()!
+        if (activeTool === 'measure_distance') {
+          const length = getLength(geom)
+          const formatted = length >= 1000 ? `${(length / 1000).toFixed(2)} km` : `${Math.round(length)} m`
+          toast.success(`Distance measured: ${formatted}`, {
+            icon: '📏',
+            style: { background: '#1E293B', color: '#93C5FD' },
+          })
+        } else if (activeTool === 'measure_area') {
+          const area = getArea(geom)
+          const ha = (area / 10000).toFixed(2)
+          const sqkm = (area / 1000000).toFixed(3)
+          toast.success(`Area calculated: ${ha} Hectares (${sqkm} km²)`, {
+            icon: '📐',
+            style: { background: '#1E293B', color: '#93C5FD' },
+          })
+        }
+      })
+
+      map.addInteraction(draw)
+      measureRef.current = draw
+
+      const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          setActiveTool(null)
+          measureSourceRef.current.clear()
+        }
+      }
+      window.addEventListener('keydown', onKeyDown)
+
+      return () => {
+        map.removeInteraction(draw)
+        measureRef.current = null
+        window.removeEventListener('keydown', onKeyDown)
+      }
+    } else {
+      measureSourceRef.current.clear()
+    }
+  }, [activeTool, mapReady, mapRef, setActiveTool, setMeasurementResult])
 
   // ── Draw Boundary Interaction ──────────────────────────────────────────────
   useEffect(() => {
@@ -96,8 +220,20 @@ export default function MapView() {
       draw.on('drawend', (evt) => {
         const format = new GeoJSON()
         const geometry = evt.feature.getGeometry()!
+        const drawTarget = useMapStore.getState().drawTarget
         
-        if (drawBoundaryMode === 'point' && geometry.getType() === 'Point') {
+        if (drawTarget === 'geofence') {
+          const geojson = format.writeGeometryObject(geometry, {
+            dataProjection: 'EPSG:4326',
+            featureProjection: 'EPSG:3857',
+          })
+          useMapStore.getState().setDrawnGeofenceGeoJSON(geojson as object)
+          useMapStore.getState().setDrawBoundaryMode(false)
+          toast.success('Geofence polygon captured! Ready to configure in Geofence Console.', {
+            icon: '🛡️',
+            duration: 4000,
+          })
+        } else if (drawBoundaryMode === 'point' && geometry.getType() === 'Point') {
           // Transform point back to EPSG:4326 for the form inputs
           const coords = (geometry as import('ol/geom/Point').default).clone().transform('EPSG:3857', 'EPSG:4326').getCoordinates()
           setDrawnPointCoords([coords[0], coords[1]])
@@ -134,46 +270,41 @@ export default function MapView() {
     }
   }, [drawBoundaryMode, mapReady, mapRef, openLeaseCreateForm, setDrawBoundaryMode, setDrawnPointCoords])
 
-  // Track history line drawing
+  const prevSelectedVehicleRef = useRef<number | null>(null)
+
+  // Vehicle selection handling: focus on selected vehicle only when selection changes
   useEffect(() => {
     if (!mapReady || !selectedVehicleId) {
       clearTripLayer()
+      prevSelectedVehicleRef.current = null
       return
     }
 
-    const fetchHistory = async () => {
-      try {
-        const today = new Date().toISOString().split('T')[0]
-        const data = await vehiclesApi.getHistory(selectedVehicleId, today, today)
-        if (data.trip_geojson?.geometry) {
-           // updateTripLayer expects a FeatureCollection, we can wrap the LineString in a FeatureCollection
-           const featureCollection = {
-             type: 'FeatureCollection',
-             features: [data.trip_geojson]
-           }
-           updateTripLayer(featureCollection as any)
-        } else {
-           clearTripLayer()
-        }
-      } catch (err) {
-        clearTripLayer()
+    if (prevSelectedVehicleRef.current !== selectedVehicleId) {
+      prevSelectedVehicleRef.current = selectedVehicleId
+      clearTripLayer()
+
+      // Fly to selected vehicle
+      const vehicle = vehicles.find((v) => v.id === selectedVehicleId)
+      if (vehicle && vehicle.last_lon && vehicle.last_lat) {
+        flyTo(vehicle.last_lon, vehicle.last_lat, 15)
       }
     }
-    fetchHistory()
-
-    // Fly to selected vehicle
-    const vehicle = vehicles.find(v => v.id === selectedVehicleId)
-    if (vehicle && vehicle.last_lon && vehicle.last_lat) {
-      flyTo(vehicle.last_lon, vehicle.last_lat, 15)
-    }
-
-  }, [selectedVehicleId, mapReady, clearTripLayer, updateTripLayer, flyTo, vehicles])
+  }, [selectedVehicleId, mapReady, clearTripLayer, flyTo, vehicles])
   // Fly to selected lease
   useEffect(() => {
     if (mapReady && selectedLeaseData?.centroid_lon && selectedLeaseData?.centroid_lat) {
       flyTo(selectedLeaseData.centroid_lon, selectedLeaseData.centroid_lat, 14)
     }
   }, [selectedLeaseData, mapReady, flyTo])
+
+  // Explicit flyTo target (e.g. from Fleet table or Lease directory)
+  useEffect(() => {
+    if (mapReady && mapFlyToTarget) {
+      flyTo(mapFlyToTarget.lon, mapFlyToTarget.lat, mapFlyToTarget.zoom ?? 15)
+      setMapFlyToTarget(null)
+    }
+  }, [mapFlyToTarget, mapReady, flyTo, setMapFlyToTarget])
 
   return (
     <div className="relative w-full h-full">
@@ -182,12 +313,27 @@ export default function MapView() {
         ref={containerRef}
         id="ol-map"
         className="w-full h-full"
-        style={{ background: '#0F172A', cursor: drawBoundaryMode ? 'crosshair' : undefined }}
+        style={{ background: '#F1F5F9', cursor: drawBoundaryMode ? 'crosshair' : undefined }}
       />
       
+      {/* Geofence Breach Tactical Test Button */}
+      <div className="absolute top-3 left-3 z-30 flex items-center gap-2">
+        <button
+          onClick={() => triggerGeofenceBreachDemo()}
+          className="flex items-center gap-2 px-3 py-1.5 bg-red-700/90 hover:bg-red-600 text-white rounded-lg text-xs font-black shadow-xl border border-red-500/50 backdrop-blur transition-all hover:scale-105 active:scale-95"
+          title="Simulate Real-Time Geofence Trespassing Alert on Map"
+        >
+          <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+          <span>⚠️ Simulate Geofence Breach</span>
+        </button>
+      </div>
+
       {mapReady && mapRef.current && (
         <VehicleOverlays map={mapRef.current} />
       )}
+
+      {/* Geofence Alert Popup directly on Map */}
+      <GeofenceAlertPopup />
 
       {/* Coordinate display overlay */}
       {cursorCoords && (

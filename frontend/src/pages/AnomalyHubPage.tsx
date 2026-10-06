@@ -35,7 +35,7 @@ interface ProductionRecord {
   notes: string;
 }
 
-export default function AnomalyHubPage() {
+export default function AnomalyHubPage({ embed = false }: { embed?: boolean }) {
   const [records, setRecords] = useState<ProductionRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRecord, setSelectedRecord] = useState<ProductionRecord | null>(null);
@@ -78,102 +78,108 @@ export default function AnomalyHubPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-[#0F172A] text-slate-200 p-6 font-sans">
-      <div className="max-w-6xl mx-auto space-y-8">
+  const mainContent = (
+    <>
+      <div className="flex-1 p-4 sm:p-6 max-w-6xl mx-auto w-full space-y-6">
+
         
-        {/* --- Header --- */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* --- Header Advisory --- */}
+        <div className="bg-white border border-slate-300 rounded-lg p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-              <ShieldAlert className="text-amber-400" size={28} />
-              AI/ML Anomaly Investigation Hub
+            <h1 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <ShieldAlert className="text-amber-600" size={22} />
+              Statutory Anomaly Triage &amp; Inquiry Desk
             </h1>
-            <p className="text-slate-400 text-sm mt-1">
-              Triaging production records flagged by the Isolation Forest engine for non-compliance.
+            <p className="text-slate-600 text-xs mt-1">
+              Automated Isolation Forest cross-examination matching monthly extraction declarations against satellite imagery changes and transport e-permits.
             </p>
           </div>
-          <Link to="/dashboard" className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm transition-colors border border-slate-700">
-            Back to MIS
-          </Link>
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-600 bg-slate-50 px-3 py-1.5 rounded border border-slate-300">
+            <span>DMO Action Protocol: Rule 28 (TS MMCR)</span>
+          </div>
         </div>
 
         {/* --- Statistics Strip --- */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-slate-800/40 border border-slate-700/50 p-5 rounded-2xl flex items-center gap-4">
-            <div className="p-3 bg-amber-500/20 text-amber-400 rounded-xl"><AlertTriangle size={24} /></div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white border border-slate-300 p-4 rounded-lg shadow-xs flex items-center gap-3">
+            <div className="p-2.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-md"><AlertTriangle size={20} /></div>
             <div>
-              <div className="text-2xl font-bold text-white">{records.length}</div>
-              <div className="text-xs text-slate-400">Pening Investigations</div>
+              <div className="text-2xl font-black text-slate-900">{records.length}</div>
+              <div className="text-xs text-slate-500 font-semibold">Active Inquiries Pending</div>
             </div>
           </div>
-          <div className="bg-slate-800/40 border border-slate-700/50 p-5 rounded-2xl flex items-center gap-4 text-emerald-400">
-             <div className="p-3 bg-emerald-500/20 rounded-xl"><CheckCircle size={24} /></div>
+          <div className="bg-white border border-slate-300 p-4 rounded-lg shadow-xs flex items-center gap-3">
+             <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-md"><CheckCircle size={20} /></div>
              <div>
-                <div className="text-2xl font-bold text-white">0.82</div>
-                <div className="text-xs text-slate-400">Avg. Anomaly Intensity</div>
+                <div className="text-2xl font-black text-slate-900">0.82</div>
+                <div className="text-xs text-slate-500 font-semibold">Mean Algorithmic Confidence</div>
              </div>
           </div>
-          <div className="bg-slate-800/40 border border-slate-700/50 p-5 rounded-2xl flex items-center gap-4 text-gov-400">
-             <div className="p-3 bg-gov-500/20 rounded-xl"><History size={24} /></div>
+          <div className="bg-white border border-slate-300 p-4 rounded-lg shadow-xs flex items-center gap-3">
+             <div className="p-2.5 bg-blue-50 border border-blue-200 text-gov-600 rounded-md"><History size={20} /></div>
              <div>
-                <div className="text-2xl font-bold text-white">3.4h</div>
-                <div className="text-xs text-slate-400">Median Resolution Time</div>
+                <div className="text-2xl font-black text-slate-900">3.4h</div>
+                <div className="text-xs text-slate-500 font-semibold">Mean Inquiry Disposal Rate</div>
              </div>
           </div>
         </div>
 
         {/* --- Main List --- */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between px-2">
-            <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Flagged Production Records</h2>
-            <div className="flex gap-2">
-               <button className="p-2 bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors"><Filter size={16} /></button>
-               <button className="p-2 bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors"><Search size={16} /></button>
-            </div>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+              Flagged Lease Extraction Declarations
+            </h2>
+            <span className="text-xs text-slate-500">Sorted by Anomaly Confidence</span>
           </div>
 
           {loading ? (
-             <div className="p-20 text-center text-slate-500">Scanning satellite and production data vectors...</div>
+             <div className="bg-white border border-slate-300 p-12 rounded-lg text-center text-slate-500 text-xs font-medium">
+               Scanning satellite indices and transport records...
+             </div>
           ) : records.length === 0 ? (
-             <div className="bg-slate-800/20 border border-dashed border-slate-700 p-12 rounded-3xl text-center">
-                <CheckCircle className="text-emerald-500 mx-auto mb-4" size={48} />
-                <h3 className="text-lg font-medium text-white text-emerald-400">No Active Anomalies</h3>
-                <p className="text-slate-400 text-sm mt-1">Isolation Forest engine reports normal operational patterns across all sectors.</p>
+             <div className="bg-white border border-slate-300 p-12 rounded-lg text-center shadow-xs">
+                <CheckCircle className="text-emerald-600 mx-auto mb-3" size={40} />
+                <h3 className="text-sm font-bold text-slate-800">All Production Declarations Verified</h3>
+                <p className="text-slate-500 text-xs mt-1">Algorithmic surveillance reports normal extraction patterns across all active Telangana mining concessions.</p>
              </div>
           ) : (
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {records.map(rec => (
                    <div 
                     key={rec.id} 
-                    className="group bg-slate-800/40 border border-slate-700/50 p-5 rounded-2xl hover:bg-slate-800 transition-all cursor-pointer border-l-4 border-l-amber-500"
+                    className="group bg-white border border-slate-300 p-4 rounded-lg hover:border-gov-600 shadow-xs transition-all cursor-pointer border-l-4 border-l-amber-600 flex flex-col justify-between"
                     onClick={() => setSelectedRecord(rec)}
                   >
-                     <div className="flex justify-between items-start mb-4">
-                        <div>
-                           <div className="text-xs text-amber-500 font-bold uppercase mb-1">{rec.lease_id}</div>
-                           <h4 className="text-white font-bold">{rec.lease_name}</h4>
-                        </div>
-                        <div className="flex flex-col items-end">
-                           <div className="text-xl font-black text-white">{Math.round(rec.anomaly_score * 100)}%</div>
-                           <div className="text-[10px] text-slate-500 uppercase tracking-tighter">Anomaly Score</div>
-                        </div>
-                     </div>
-                     
-                     <div className="flex flex-wrap gap-2 mb-4">
-                        {rec.anomaly_flags.map(f => (
-                           <span key={f} className="px-2 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-md text-[10px] uppercase font-bold">
-                              {f.replace(/_/g, ' ')}
-                           </span>
-                        ))}
+                     <div>
+                       <div className="flex justify-between items-start mb-3">
+                          <div>
+                             <span className="text-[10px] text-gov-600 font-mono font-bold bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded">
+                               {rec.lease_id}
+                             </span>
+                             <h4 className="text-sm font-bold text-slate-900 mt-1.5">{rec.lease_name}</h4>
+                          </div>
+                          <div className="text-right">
+                             <div className="text-lg font-black text-red-700">{Math.round(rec.anomaly_score * 100)}%</div>
+                             <div className="text-[10px] text-slate-500 uppercase font-semibold">Confidence</div>
+                          </div>
+                       </div>
+                       
+                       <div className="flex flex-wrap gap-1.5 mb-3">
+                          {rec.anomaly_flags.map(f => (
+                             <span key={f} className="px-2 py-0.5 bg-red-50 text-red-800 border border-red-300 rounded text-[10px] uppercase font-bold">
+                                {f.replace(/_/g, ' ')}
+                             </span>
+                          ))}
+                       </div>
                      </div>
 
-                     <div className="flex items-center justify-between pt-4 border-t border-slate-700/50">
-                        <div className="text-xs text-slate-500">
-                           {rec.period_year}-{rec.period_month ?? 'Q' + rec.period_quarter} Production
+                     <div className="flex items-center justify-between pt-3 border-t border-slate-200 text-xs">
+                        <div className="text-slate-500 font-medium">
+                           Declared: {rec.period_year}-{rec.period_month ?? 'Q' + rec.period_quarter}
                         </div>
-                        <div className="flex items-center gap-1 text-gov-400 text-xs font-bold group-hover:translate-x-1 transition-transform">
-                           Investigate <ArrowRight size={14} />
+                        <div className="flex items-center gap-1 text-gov-600 font-bold group-hover:translate-x-0.5 transition-transform">
+                           Open Dossier <ArrowRight size={13} />
                         </div>
                      </div>
                    </div>
@@ -185,97 +191,161 @@ export default function AnomalyHubPage() {
 
       {/* --- Detail Modal --- */}
       {selectedRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-           <div className="bg-[#1E293B] border border-slate-700 w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-              <div className="p-6 border-b border-slate-700 flex items-center justify-between">
-                 <h2 className="text-xl font-bold text-white flex items-center gap-3">
-                    <FileText className="text-gov-400" />
-                    Investigation Case #{selectedRecord.id}
-                 </h2>
-                 <button onClick={() => setSelectedRecord(null)} className="p-2 hover:bg-slate-700 rounded-full transition-colors">
-                    <X size={20} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+           <div className="bg-white border border-slate-300 w-full max-w-2xl rounded-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+              {/* Modal Header */}
+              <div className="px-6 py-4 bg-gov-600 text-white flex items-center justify-between">
+                 <div className="flex items-center gap-2.5">
+                    <FileText size={18} className="text-amber-400" />
+                    <div>
+                      <h2 className="text-sm font-bold tracking-tight">
+                        Department Inquiry Memo #{selectedRecord.id}
+                      </h2>
+                      <p className="text-[11px] text-blue-100">Statutory Notice under Section 21 MMDR Act</p>
+                    </div>
+                 </div>
+                 <button onClick={() => setSelectedRecord(null)} className="p-1 hover:bg-white/10 rounded transition-colors text-white">
+                    <X size={18} />
                  </button>
               </div>
 
-              <div className="p-8 overflow-y-auto space-y-8">
-                 <div className="grid grid-cols-2 gap-8">
+              <div className="p-6 overflow-y-auto space-y-6 text-xs bg-slate-50/50">
+                 <div className="grid grid-cols-2 gap-4 bg-white p-4 rounded border border-slate-300">
                     <div>
-                       <div className="text-xs text-slate-500 uppercase font-bold mb-2">Facility Information</div>
-                       <div className="text-white font-bold">{selectedRecord.lease_name}</div>
-                       <div className="text-sm text-slate-400">{selectedRecord.lease_id}</div>
+                       <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Mine / Facility Details</div>
+                       <div className="text-slate-900 font-bold text-sm">{selectedRecord.lease_name}</div>
+                       <div className="text-slate-600 font-mono">{selectedRecord.lease_id}</div>
                     </div>
                     <div>
-                        <div className="text-xs text-slate-500 uppercase font-bold mb-2">Production Volume</div>
-                        <div className="text-white font-bold">{selectedRecord.quantity_produced_mt.toLocaleString()} MT</div>
-                        <div className="text-sm text-slate-400 italic">Dispatched: {selectedRecord.quantity_dispatched_mt.toLocaleString()} MT</div>
+                        <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Declared Extraction Volume</div>
+                        <div className="text-slate-900 font-bold text-sm">{selectedRecord.quantity_produced_mt.toLocaleString()} MT</div>
+                        <div className="text-slate-600 font-medium">Dispatched with Transit Pass: {selectedRecord.quantity_dispatched_mt.toLocaleString()} MT</div>
                     </div>
                  </div>
 
-                 <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6">
-                    <div className="flex items-center gap-2 text-red-400 font-bold mb-4">
-                       <ShieldAlert size={18} /> ML Vector Deviations Detected
+                 <div className="bg-red-50 border border-red-300 rounded p-4">
+                    <div className="flex items-center gap-2 text-red-800 font-bold mb-2">
+                       <ShieldAlert size={16} /> Statutory Extraction Inconsistencies Detected
                     </div>
-                    <ul className="space-y-3">
+                    <ul className="space-y-1.5">
                        {selectedRecord.anomaly_flags.map(f => (
-                          <li key={f} className="text-sm text-slate-300 flex items-start gap-2">
-                             <div className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
-                             {f.replace(/_/g, ' ')} investigation required.
+                          <li key={f} className="text-red-900 flex items-start gap-2 font-medium">
+                             <span className="font-bold">•</span>
+                             <span>{f.replace(/_/g, ' ')}: Requires physical inspection and drone DGPS survey.</span>
                           </li>
                        ))}
                     </ul>
                  </div>
 
-                 <div className="space-y-4">
-                    <div className="text-xs text-slate-500 uppercase font-bold">Investigation Findings & Resolution</div>
+                 <div className="space-y-2 bg-white p-4 rounded border border-slate-300">
+                    <div className="text-slate-700 font-bold uppercase text-[10px]">
+                      District Mining Officer (DMO) Resolution &amp; Inspection Memo <span className="text-red-600">*</span>
+                    </div>
                     <textarea 
                       value={resolutionNotes}
                       onChange={(e) => setResolutionNotes(e.target.value)}
-                      placeholder="Enter site inspection findings or reason for dismissal..."
-                      className="w-full bg-slate-900 border border-slate-700 rounded-2xl p-4 text-sm text-white focus:border-gov-400 outline-none h-32 transition-colors"
+                      placeholder="Enter field inspection findings, challan reference, or statutory dismissal rationale..."
+                      className="w-full bg-white border border-slate-300 rounded p-3 text-xs text-slate-900 focus:border-gov-600 focus:ring-1 focus:ring-gov-600 outline-none h-24 transition-colors"
                     />
                     
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-3 pt-2">
                        <button 
+                         type="button"
                          onClick={() => setResolutionStatus('VERIFIED')}
                          className={clsx(
-                           "flex-1 py-3 px-4 rounded-xl text-sm font-bold transition-all border outline-none",
-                           resolutionStatus === 'VERIFIED' ? "bg-emerald-600 text-white border-emerald-500 shadow-lg" : "bg-slate-800 text-slate-400 border-slate-700"
+                           "py-2 px-3 rounded text-xs font-bold transition-all border cursor-pointer",
+                           resolutionStatus === 'VERIFIED' ? "bg-emerald-700 text-white border-emerald-800 shadow-xs" : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
                          )}
                        >
-                          Verify & Dismiss Anomaly
+                          ✓ Dismiss as Verified
                        </button>
                        <button 
+                         type="button"
                          onClick={() => setResolutionStatus('FLAGGED')}
                          className={clsx(
-                           "flex-1 py-3 px-4 rounded-xl text-sm font-bold transition-all border outline-none",
-                           resolutionStatus === 'FLAGGED' ? "bg-amber-600 text-white border-amber-500 shadow-lg" : "bg-slate-800 text-slate-400 border-slate-700"
+                           "py-2 px-3 rounded text-xs font-bold transition-all border cursor-pointer",
+                           resolutionStatus === 'FLAGGED' ? "bg-amber-600 text-white border-amber-700 shadow-xs" : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
                          )}
                        >
-                          Escalate Investigation
+                          ⚠️ Issue Statutory Show-Cause Notice
                        </button>
                     </div>
                  </div>
               </div>
 
-              <div className="p-6 bg-slate-800/50 border-t border-slate-700 flex justify-end gap-3">
+              {/* Modal Actions */}
+              <div className="p-4 bg-white border-t border-slate-300 flex justify-end gap-2.5">
                  <button 
                   onClick={() => setSelectedRecord(null)}
-                  className="px-6 py-2.5 text-sm text-slate-400 hover:text-white transition-colors"
+                  className="px-4 py-1.5 text-xs font-semibold text-slate-700 border border-slate-300 rounded hover:bg-slate-100 transition-colors"
                 >
                   Cancel
                 </button>
                  <button 
                   onClick={handleResolve}
                   disabled={submitting || !resolutionNotes}
-                  className="px-8 py-2.5 bg-gov-600 hover:bg-gov-500 disabled:bg-slate-700 text-white rounded-xl text-sm font-bold shadow-xl transition-all flex items-center gap-2"
+                  className="px-5 py-1.5 bg-gov-600 hover:bg-gov-700 disabled:opacity-60 text-white rounded text-xs font-bold shadow-xs transition-all flex items-center gap-1.5"
                 >
-                  {submitting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <MessageSquare size={16} />}
-                  Submit Resolution
+                  {submitting ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <MessageSquare size={13} />}
+                  Record Official Resolution
                 </button>
               </div>
            </div>
         </div>
       )}
+    </>
+  );
+
+  if (embed) {
+    return (
+      <div className="flex-1 bg-slate-100 overflow-y-auto custom-scrollbar font-sans text-slate-900">
+        {mainContent}
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-100 text-slate-900 font-sans flex flex-col">
+      <div className="h-1.5 w-full flex flex-shrink-0">
+        <div className="h-full w-1/3 bg-[#FF671F]" />
+        <div className="h-full w-1/3 bg-[#FFFFFF]" />
+        <div className="h-full w-1/3 bg-[#046A38]" />
+      </div>
+
+      <header className="bg-white border-b border-slate-300 px-6 py-3 shadow-xs flex-shrink-0">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full border-2 border-gov-600 bg-blue-50/50 flex items-center justify-center p-1 flex-shrink-0">
+              <span className="text-[9px] font-black text-gov-600 tracking-tighter">TS DMG</span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-sm font-extrabold text-gov-600 tracking-tight leading-none">
+                  తెలంగాణ ప్రభుత్వం | Department of Mines &amp; Geology
+                </h1>
+                <span className="text-[10px] bg-red-50 border border-red-300 text-red-800 px-1.5 py-0.2 rounded font-bold uppercase">
+                  Enforcement Hub
+                </span>
+              </div>
+              <h2 className="text-xs font-bold text-slate-800 leading-tight mt-1">
+                AI/ML Production Anomaly Triage &amp; Statutory Non-Compliance Desk
+              </h2>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link to="/dashboard" className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-300 rounded text-xs font-bold text-slate-700 transition-colors shadow-xs">
+              Executive MIS
+            </Link>
+            <Link to="/" className="px-3.5 py-1.5 bg-gov-600 hover:bg-gov-700 text-white rounded text-xs font-bold transition-colors shadow-xs">
+              Cadastral Map
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1">
+        {mainContent}
+      </main>
     </div>
   );
 }

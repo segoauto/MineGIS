@@ -42,48 +42,52 @@ export default function SearchBar() {
 
   return (
     <div className="relative w-full max-w-md">
-      <div className="flex items-center gap-2 bg-map-panel border border-map-border rounded-lg px-3 py-2 focus-within:border-gov-400 transition-colors">
+      <div className="flex items-center gap-2 bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 focus-within:bg-white focus-within:border-gov-600 focus-within:ring-1 focus-within:ring-gov-600 transition-all shadow-2xs">
         {isLoading
-          ? <Loader2 size={15} className="text-map-muted animate-spin flex-shrink-0" />
-          : <Search size={15} className="text-map-muted flex-shrink-0" />}
+          ? <Loader2 size={14} className="text-slate-400 animate-spin flex-shrink-0" />
+          : <Search size={14} className="text-slate-500 flex-shrink-0" />}
         <input
           ref={inputRef}
           type="text"
           value={query}
           onChange={(e) => { setQuery(e.target.value); setIsOpen(true) }}
           onFocus={() => query.length >= 2 && setIsOpen(true)}
-          placeholder="Search leases, districts, companies..."
-          className="flex-1 bg-transparent text-map-text text-sm placeholder:text-map-muted outline-none min-w-0"
+          placeholder="Search Lease ID, Mine Name, District..."
+          className="flex-1 bg-transparent text-slate-800 text-xs placeholder:text-slate-400 outline-none min-w-0"
         />
         {query && (
           <button onClick={() => { setQuery(''); setResults([]); setIsOpen(false) }}
-            className="text-map-muted hover:text-map-text">
-            <X size={14} />
+            className="text-slate-400 hover:text-slate-600">
+            <X size={13} />
           </button>
         )}
       </div>
 
       {/* Results dropdown */}
       {isOpen && results.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-map-panel border border-map-border rounded-lg shadow-2xl z-50 overflow-hidden animate-fade-in">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-md shadow-lg z-50 overflow-hidden animate-fade-in divide-y divide-slate-100">
+          <div className="bg-slate-50 px-3 py-1.5 text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+            Matching Mining Leases ({results.length})
+          </div>
           {results.map((lease) => (
             <button
               key={lease.id}
               onClick={() => handleSelect(lease)}
-              className="w-full flex items-start gap-3 px-3 py-2.5 hover:bg-map-border/50 transition-colors text-left"
+              className="w-full flex items-start gap-2.5 px-3 py-2 hover:bg-slate-50 transition-colors text-left"
             >
-              <MapPin size={13} className="text-gov-300 mt-0.5 flex-shrink-0" />
-              <div className="min-w-0">
-                <div className="text-map-text text-xs font-semibold truncate">{lease.mine_name}</div>
-                <div className="text-map-muted text-xs">
-                  <span className="font-mono">{lease.lease_id}</span>
-                  {' · '}{lease.district}
-                  {' · '}
+              <MapPin size={14} className="text-gov-600 mt-0.5 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <div className="text-slate-900 text-xs font-bold truncate">{lease.mine_name}</div>
+                <div className="text-slate-500 text-[11px] flex items-center gap-1.5 mt-0.5 flex-wrap">
+                  <span className="font-mono text-gov-700 font-semibold">{lease.lease_id}</span>
+                  <span>·</span>
+                  <span>{lease.district}</span>
+                  <span>·</span>
                   <span className={clsx(
-                    'font-medium',
-                    lease.status === 'ACTIVE' ? 'text-blue-400' :
-                    lease.status === 'EXPIRED' ? 'text-gray-400' :
-                    lease.status === 'PENDING' ? 'text-yellow-400' : 'text-red-400'
+                    'text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded border',
+                    lease.status === 'ACTIVE' ? 'text-emerald-700 bg-emerald-50 border-emerald-200' :
+                    lease.status === 'EXPIRED' ? 'text-slate-700 bg-slate-100 border-slate-300' :
+                    lease.status === 'PENDING' ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-red-700 bg-red-50 border-red-200'
                   )}>
                     {lease.status}
                   </span>

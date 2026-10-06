@@ -825,11 +825,159 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(f'  ✅ {alert_count} vehicle alerts created'))
 
-        # Create UserProfiles for all users
+        # Create UserProfiles and official demo accounts
         from apps.authentication.models import UserProfile
+
+        OFFICIAL_DEMO_USERS = [
+            {
+                'username': 'admin@mining.telangana.gov.in',
+                'email': 'admin@mining.telangana.gov.in',
+                'password': 'Admin@123',
+                'first_name': 'Dr. K. Srinivas',
+                'last_name': 'Rao, IAS',
+                'role': 'R01_SUPER_ADMIN',
+                'designation': 'Director of Mines & Geology (State Administrator)',
+                'district': 'Hyderabad HQ',
+                'is_staff': True,
+                'is_superuser': True,
+            },
+            {
+                'username': 'approver@mining.telangana.gov.in',
+                'email': 'approver@mining.telangana.gov.in',
+                'password': 'Approve@123',
+                'first_name': 'V. Anuradha',
+                'last_name': 'Reddy',
+                'role': 'R03_STATE_MGR',
+                'designation': 'Joint Director & State Approving Authority',
+                'district': 'Hyderabad HQ',
+                'is_staff': True,
+                'is_superuser': False,
+            },
+            {
+                'username': 'dataentry@mining.telangana.gov.in',
+                'email': 'dataentry@mining.telangana.gov.in',
+                'password': 'Data@123',
+                'first_name': 'K. Shiva',
+                'last_name': 'Prasad',
+                'role': 'R06_DATA_ENTRY',
+                'designation': 'Cadastral Data Entry Operator',
+                'district': 'Warangal & Khammam Zone',
+                'is_staff': False,
+                'is_superuser': False,
+            },
+            {
+                'username': 'fieldofficer@mining.telangana.gov.in',
+                'email': 'fieldofficer@mining.telangana.gov.in',
+                'password': 'Field@123',
+                'first_name': 'M. Sridhar',
+                'last_name': 'Goud',
+                'role': 'R05_FIELD_OFFICER',
+                'designation': 'Assistant Geologist & Field Inspecting Officer',
+                'district': 'Bhadradri Kothagudem',
+                'is_staff': False,
+                'is_superuser': False,
+            },
+            {
+                'username': 'viewonly@mining.telangana.gov.in',
+                'email': 'viewonly@mining.telangana.gov.in',
+                'password': 'View@123',
+                'first_name': 'S.',
+                'last_name': 'Hemalatha',
+                'role': 'R11_REPORT_VIEWER',
+                'designation': 'Public Information & MIS Dossier Viewer',
+                'district': 'Statewide',
+                'is_staff': False,
+                'is_superuser': False,
+            },
+            {
+                'username': 'auditofficer@mining.telangana.gov.in',
+                'email': 'auditofficer@mining.telangana.gov.in',
+                'password': 'Audit@123',
+                'first_name': 'P. Venkata',
+                'last_name': 'Ramana',
+                'role': 'R08_AUDITOR',
+                'designation': 'Chief Vigilance Officer & Statutory Auditor',
+                'district': 'State Vigilance Cell',
+                'is_staff': True,
+                'is_superuser': False,
+            },
+            {
+                'username': 'tg.viewer',
+                'email': 'tg.viewer@mining.telangana.gov.in',
+                'password': 'Mining@View25',
+                'first_name': 'Telangana',
+                'last_name': 'Viewer',
+                'role': 'R11_REPORT_VIEWER',
+                'designation': 'Public Web-GIS Viewer',
+                'district': 'Telangana Statewide',
+                'is_staff': False,
+                'is_superuser': False,
+
+            {
+                'username': 'districtofficer@mining.telangana.gov.in',
+                'email': 'districtofficer@mining.telangana.gov.in',
+                'password': 'District@123',
+                'first_name': 'B. Rajeshwar',
+                'last_name': 'Rao',
+                'role': 'R04_DISTRICT_OFFICER',
+                'designation': 'District Mineral Officer (DMO)',
+                'district': 'Nizamabad',
+                'is_staff': True,
+                'is_superuser': False,
+            },
+            {
+                'username': 'executive@mining.telangana.gov.in',
+                'email': 'executive@mining.telangana.gov.in',
+                'password': 'Executive@123',
+                'first_name': 'Sri N.',
+                'last_name': 'Sridhar, IAS',
+                'role': 'R02_STATE_EXEC',
+                'designation': 'Principal Secretary to Government (Mines & Energy)',
+                'district': 'Telangana Secretariat',
+                'is_staff': True,
+                'is_superuser': False,
+            },
+            {
+                'username': 'fleetowner@mining.telangana.gov.in',
+                'email': 'fleetowner@mining.telangana.gov.in',
+                'password': 'Fleet@123',
+                'first_name': 'G. Malla',
+                'last_name': 'Reddy',
+                'role': 'R09_LEASEHOLDER',
+                'designation': 'Authorized Mineral Transit Fleet Concessionaire',
+                'district': 'Godavari Mineral Corridor',
+                'is_staff': False,
+                'is_superuser': False,
+            },
+        ]
+
+        for acc in OFFICIAL_DEMO_USERS:
+            u, created = User.objects.get_or_create(
+                username=acc['username'],
+                defaults={
+                    'email': acc['email'],
+                    'first_name': acc['first_name'],
+                    'last_name': acc['last_name'],
+                    'is_staff': acc['is_staff'],
+                    'is_superuser': acc.get('is_superuser', False),
+                }
+            )
+            u.set_password(acc['password'])
+            u.is_active = True
+            u.save()
+
+            UserProfile.objects.update_or_create(
+                user=u,
+                defaults={
+                    'role': acc['role'],
+                    'designation': acc['designation'],
+                    'district': acc['district'],
+                }
+            )
+
         for user in User.objects.all():
             if not hasattr(user, 'profile'):
-                role = 'ADMIN' if user.is_superuser else 'DISTRICT_OFFICER'
+                role = 'R01_SUPER_ADMIN' if user.is_superuser else 'R04_DISTRICT_OFFICER'
                 UserProfile.objects.get_or_create(user=user, defaults={'role': role})
 
-        self.stdout.write(self.style.SUCCESS('✅ Seed data complete! Default login: admin@minegis.ts.gov.in / MineGIS@2026'))
+        self.stdout.write(self.style.SUCCESS('✅ Seed data complete! All 11 official demo accounts active & configured.'))

@@ -29,33 +29,20 @@ echo "🔄 Running database migrations..."
 python manage.py migrate --noinput
 echo "✅ Migrations complete"
 
-# ─── Create superuser if not exists ─────────────────────────
 echo "🔄 Creating admin user if not exists..."
 python manage.py shell -c "
-from apps.authentication.models import User
-if not User.objects.filter(email='admin@minegis.ts.gov.in').exists():
-    u = User.objects.create_superuser(
-        email='admin@minegis.ts.gov.in',
-        password='MineGIS@2026',
-        first_name='Admin',
-        last_name='MineGIS'
+from django.contrib.auth.models import User
+for email, pwd in [('admin@mining.telangana.gov.in', 'Admin@123'), ('admin@minegis.ts.gov.in', 'MineGIS@2026')]:
+    u, created = User.objects.get_or_create(
+        username=email,
+        defaults={'email': email, 'first_name': 'Admin', 'last_name': 'TS-DMG', 'is_staff': True, 'is_superuser': True}
     )
-    u.username = 'admin@minegis.ts.gov.in'
-    u.role = 'R01_SUPER_ADMIN'
-    u.is_verified = True
-    u.save()
-    print('Admin user created: ' + u.email)
-else:
-    u = User.objects.get(email='admin@minegis.ts.gov.in')
-    u.username = 'admin@minegis.ts.gov.in'
-    u.set_password('MineGIS@2026')
-    u.role = 'R01_SUPER_ADMIN'
-    u.is_verified = True
+    u.set_password(pwd)
     u.is_active = True
     u.is_staff = True
     u.is_superuser = True
     u.save()
-    print('Admin user verified: ' + u.email)
+    print('Superuser verified:', email)
 " || true
 
 # ─── Run seed data ──────────────────────────────────────────

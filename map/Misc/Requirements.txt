@@ -1,0 +1,5 @@
+data cleaning
+symbology
+mineral wise graphs and charts
+NDVI
+Infowindow

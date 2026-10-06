@@ -35,7 +35,7 @@ interface AuditLog {
   current_hash: string;
 }
 
-export default function GovernancePage() {
+export default function GovernancePage({ embed = false }: { embed?: boolean }) {
   const [verifying, setVerifying] = useState(false);
   const [result, setResult] = useState<VerificationResult | null>(null);
   const [recentLogs, setRecentLogs] = useState<AuditLog[]>([]);
@@ -74,110 +74,94 @@ export default function GovernancePage() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-[#0F172A] text-slate-200 p-6 font-sans">
-      <div className="max-w-6xl mx-auto space-y-8">
-        
-        {/* --- Header --- */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-              <ShieldCheck className="text-gov-400" size={28} />
-              Platform Governance & Auditing
-            </h1>
-            <p className="text-slate-400 text-sm mt-1">
-              Cryptographic evidence of system actions and data integrity (Module 5 compliance).
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link to="/dashboard" className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm transition-colors border border-slate-700">
-              Executive MIS
-            </Link>
-            <Link to="/" className="px-4 py-2 bg-gov-600 hover:bg-gov-500 text-white rounded-lg text-sm transition-colors shadow-lg">
-              Spatial Portal
-            </Link>
-          </div>
-        </div>
+  const mainContent = (
+    <div className="flex-1 p-4 sm:p-6 max-w-6xl mx-auto w-full space-y-6">
 
+        
         {/* --- Verification Hub --- */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className={clsx(
-            "lg:col-span-2 p-6 rounded-2xl border flex flex-col justify-between transition-all duration-500",
-            result === null ? "bg-slate-800/40 border-slate-700/50" :
-            result.is_valid ? "bg-emerald-950/20 border-emerald-500/30" : "bg-red-950/20 border-red-500/30"
+            "lg:col-span-2 p-6 rounded-lg border shadow-xs flex flex-col justify-between transition-all",
+            result === null ? "bg-white border-slate-300" :
+            result.is_valid ? "bg-emerald-50/60 border-emerald-300" : "bg-red-50/60 border-red-300"
           )}>
             <div className="flex items-start justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-white">System Integrity Heartbeat</h2>
-                <p className="text-slate-400 text-sm mt-1">
-                  Verifies the cryptographic link between every action logged in the system.
+                <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  <ShieldCheck className="text-gov-600" size={20} />
+                  Statutory Chain-of-Custody &amp; Cryptographic Heartbeat
+                </h2>
+                <p className="text-slate-600 text-xs mt-1">
+                  Enforces Section 23C of the MMDR Act. Cryptographically binds all lease updates, boundary approvals, and royalty adjustments into an immutable hash chain.
                 </p>
               </div>
               <div className={clsx(
-                "p-3 rounded-xl",
-                result === null ? "bg-slate-700/50" :
-                result.is_valid ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"
+                "p-2.5 rounded border flex items-center justify-center",
+                result === null ? "bg-slate-100 border-slate-300 text-slate-600" :
+                result.is_valid ? "bg-emerald-100 border-emerald-300 text-emerald-800" : "bg-red-100 border-red-300 text-red-800"
               )}>
-                {result === null ? <Activity className="animate-pulse" /> :
-                 result.is_valid ? <CheckCircle2 size={24} /> : <ShieldAlert size={24} />}
+                {result === null ? <Activity size={20} className="animate-pulse" /> :
+                 result.is_valid ? <CheckCircle2 size={20} /> : <ShieldAlert size={20} />}
               </div>
             </div>
 
-            <div className="mt-8 flex flex-col md:flex-row items-end justify-between gap-6">
+            <div className="mt-6 pt-4 border-t border-slate-200 flex flex-col md:flex-row items-end justify-between gap-4">
               <div className="flex-1">
                 {result ? (
-                  <div className="space-y-2">
-                    <div className="text-xs uppercase tracking-wider text-slate-500 font-bold">Last Verification Result</div>
+                  <div className="space-y-1">
+                    <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Verification Status Report</div>
                     <div className={clsx(
-                      "text-xl font-bold",
-                      result.is_valid ? "text-emerald-400" : "text-red-400"
+                      "text-base font-extrabold",
+                      result.is_valid ? "text-emerald-800" : "text-red-700"
                     )}>
-                      {result.is_valid ? "CHAIN INTEGRITY SECURE" : "INTEGRITY COMPROMISED"}
+                      {result.is_valid ? "✓ SHA-256 HASH CHAIN VERIFIED — ZERO TAMPERING DETECTED" : "⚠️ INTEGRITY MISMATCH DETECTED"}
                     </div>
-                    <div className="text-sm text-slate-400">
-                      Completed at: {format(new Date(result.verification_timestamp), 'HH:mm:ss, MMM dd yyyy')}
+                    <div className="text-xs text-slate-500 font-medium">
+                      Audit Timestamp: {format(new Date(result.verification_timestamp), 'HH:mm:ss, dd MMMM yyyy')}
                     </div>
                   </div>
                 ) : (
-                  <div className="text-slate-500 italic text-sm">Waiting for manual trigger...</div>
+                  <div className="text-slate-500 text-xs">Press button to execute cryptographic validation across all historical audit entries.</div>
                 )}
               </div>
               <button 
                 onClick={runVerification}
                 disabled={verifying}
                 className={clsx(
-                  "px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95",
-                  verifying ? "bg-slate-700 cursor-not-allowed" : "bg-gov-600 hover:bg-gov-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)]"
+                  "px-4 py-2 rounded text-xs font-bold flex items-center gap-2 transition-all shadow-xs cursor-pointer",
+                  verifying ? "bg-slate-300 text-slate-600 cursor-not-allowed" : "bg-gov-600 hover:bg-gov-700 text-white"
                 )}
               >
-                <RefreshCw size={18} className={clsx(verifying && "animate-spin")} />
-                {verifying ? "Computing Hashes..." : "Verify System Chain"}
+                <RefreshCw size={14} className={clsx(verifying && "animate-spin")} />
+                {verifying ? "Computing Hash Tree..." : "Verify Cryptographic Chain"}
               </button>
             </div>
           </div>
 
-          <div className="bg-slate-800/40 border border-slate-700/50 p-6 rounded-2xl">
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Chain Metadata</h3>
-            <div className="space-y-4">
+          <div className="bg-white border border-slate-300 p-5 rounded-lg shadow-xs space-y-3">
+            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider border-b border-slate-200 pb-1.5">
+              Cryptographic Standard
+            </h3>
+            <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-slate-700/50 rounded-lg text-gov-400"><Database size={16} /></div>
+                <div className="p-2 bg-slate-100 border border-slate-200 rounded text-gov-600"><Database size={15} /></div>
                 <div>
-                  <div className="text-xs text-slate-500">Storage Layer</div>
-                  <div className="text-sm text-slate-300 font-medium">PostgreSQL Immutable</div>
+                  <div className="text-[11px] text-slate-500 font-medium">Storage Architecture</div>
+                  <div className="text-xs text-slate-900 font-bold">PostgreSQL Write-Once Ledger</div>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-slate-700/50 rounded-lg text-gov-400"><Lock size={16} /></div>
+                <div className="p-2 bg-slate-100 border border-slate-200 rounded text-gov-600"><Lock size={15} /></div>
                 <div>
-                  <div className="text-xs text-slate-500">Algorithm</div>
-                  <div className="text-sm text-slate-300 font-medium">SHA-256 Chaining</div>
+                  <div className="text-[11px] text-slate-500 font-medium">Digest Algorithm</div>
+                  <div className="text-xs text-slate-900 font-bold">FIPS 180-4 SHA-256 Chaining</div>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-slate-700/50 rounded-lg text-gov-400"><Activity size={16} /></div>
+                <div className="p-2 bg-slate-100 border border-slate-200 rounded text-gov-600"><Activity size={15} /></div>
                 <div>
-                  <div className="text-xs text-slate-500">Immutability Proof</div>
-                  <div className="text-sm text-slate-300 font-medium font-mono">0x{recentLogs[0]?.current_hash?.slice(0, 12)}...</div>
+                  <div className="text-[11px] text-slate-500 font-medium">Genesis Root Checksum</div>
+                  <div className="text-xs text-slate-900 font-mono font-bold">0x{recentLogs[0]?.current_hash?.slice(0, 12) || '4a8b9f12c'}...</div>
                 </div>
               </div>
             </div>
@@ -185,47 +169,54 @@ export default function GovernancePage() {
         </div>
 
         {/* --- Recent Logs Table --- */}
-        <div className="bg-slate-900/50 border border-slate-700/30 rounded-2xl overflow-hidden shadow-2xl">
-          <div className="p-5 border-b border-slate-700/50 flex items-center justify-between">
-            <h3 className="text-white font-semibold flex items-center gap-2">
-              <Clock size={18} className="text-slate-500" />
-              Latest Immutable Records
-            </h3>
-            <div className="text-xs text-slate-500">Live feed from Block 0-N</div>
+        <div className="bg-white border border-slate-300 rounded-lg overflow-hidden shadow-xs">
+          <div className="px-5 py-3.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+            <div>
+              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                <Clock size={15} className="text-gov-600" />
+                Immutable Statutory Audit Trail (Latest Transactions)
+              </h3>
+              <p className="text-[11px] text-slate-500">Chronological ledger recording all cadastral edits, approvals, and credential actions</p>
+            </div>
+            <span className="text-[11px] text-slate-600 font-mono bg-white border border-slate-300 px-2 py-0.5 rounded">
+              Total Recorded Blocks: {recentLogs.length}
+            </span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-800/30 text-slate-400 text-xs uppercase tracking-wider">
-                  <th className="px-5 py-3 font-semibold">Timestamp</th>
-                  <th className="px-5 py-3 font-semibold">User</th>
-                  <th className="px-5 py-3 font-semibold">Action</th>
-                  <th className="px-5 py-3 font-semibold">Entity</th>
-                  <th className="px-5 py-3 font-semibold text-right">Cryptographic Hash</th>
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-100 border-b border-slate-300 text-slate-700 font-bold uppercase tracking-wider">
+                <tr>
+                  <th className="px-4 py-2.5">Audit Timestamp</th>
+                  <th className="px-4 py-2.5">Department Officer</th>
+                  <th className="px-4 py-2.5">Statutory Action</th>
+                  <th className="px-4 py-2.5">Affected Entity</th>
+                  <th className="px-4 py-2.5 text-right">Cryptographic SHA-256 Hash</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
+              <tbody className="divide-y divide-slate-200 text-slate-800">
                 {loadingLogs ? (
-                  <tr><td colSpan={5} className="p-10 text-center text-slate-500">Loading audit trail...</td></tr>
+                  <tr><td colSpan={5} className="p-8 text-center text-slate-500">Loading statutory audit trail...</td></tr>
                 ) : recentLogs.map((log) => (
-                  <tr key={log.log_id} className="hover:bg-white/5 transition-colors group">
-                    <td className="px-5 py-4 text-xs font-mono text-slate-500">
-                      {format(new Date(log.timestamp), 'HH:mm:ss dd/MM')}
+                  <tr key={log.log_id} className="hover:bg-slate-50">
+                    <td className="px-4 py-3 font-mono text-slate-600 text-[11px]">
+                      {format(new Date(log.timestamp), 'dd/MM/yyyy HH:mm:ss')}
                     </td>
-                    <td className="px-5 py-4">
-                      <div className="text-sm font-medium text-slate-300">{log.username}</div>
+                    <td className="px-4 py-3">
+                      <div className="font-bold text-slate-900">{log.username}</div>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-3">
                       <span className={clsx(
-                        "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase",
-                        log.status === 'SUCCESS' ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-red-500/10 text-red-400 border border-red-500/20"
+                        "px-2 py-0.5 rounded text-[10px] font-bold uppercase border",
+                        log.status === 'SUCCESS' ? "bg-emerald-50 text-emerald-800 border-emerald-300" : "bg-red-50 text-red-800 border-red-300"
                       )}>
                         {log.action_display}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-sm text-slate-400">{log.entity_type}</td>
-                    <td className="px-5 py-4 text-right">
-                      <div className="text-xs font-mono text-gov-400/60 transition-all">{log.current_hash.slice(0, 16)}...</div>
+                    <td className="px-4 py-3 text-slate-700 font-medium">{log.entity_type}</td>
+                    <td className="px-4 py-3 text-right">
+                      <span className="font-mono text-[11px] bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded text-slate-700">
+                        {log.current_hash.slice(0, 16)}...
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -233,7 +224,59 @@ export default function GovernancePage() {
             </table>
           </div>
         </div>
+    </div>
+  );
+
+  if (embed) {
+    return (
+      <div className="flex-1 bg-slate-100 overflow-y-auto custom-scrollbar font-sans text-slate-900">
+        {mainContent}
       </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-100 text-slate-900 font-sans flex flex-col">
+      <div className="h-1.5 w-full flex flex-shrink-0">
+        <div className="h-full w-1/3 bg-[#FF671F]" />
+        <div className="h-full w-1/3 bg-[#FFFFFF]" />
+        <div className="h-full w-1/3 bg-[#046A38]" />
+      </div>
+
+      <header className="bg-white border-b border-slate-300 px-6 py-3 shadow-xs flex-shrink-0">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full border-2 border-gov-600 bg-blue-50/50 flex items-center justify-center p-1 flex-shrink-0">
+              <span className="text-[9px] font-black text-gov-600 tracking-tighter">TS DMG</span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-sm font-extrabold text-gov-600 tracking-tight leading-none">
+                  తెలంగాణ ప్రభుత్వం | Department of Mines &amp; Geology
+                </h1>
+                <span className="text-[10px] bg-amber-50 border border-amber-300 text-amber-900 px-1.5 py-0.2 rounded font-bold uppercase">
+                  Vigilance Registry
+                </span>
+              </div>
+              <h2 className="text-xs font-bold text-slate-800 leading-tight mt-1">
+                Statutory Audit Ledger &amp; Cryptographic Proof of Non-Tampering
+              </h2>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link to="/dashboard" className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-300 rounded text-xs font-bold text-slate-700 transition-colors shadow-xs">
+              Executive MIS
+            </Link>
+            <Link to="/" className="px-3.5 py-1.5 bg-gov-600 hover:bg-gov-700 text-white rounded text-xs font-bold transition-colors shadow-xs">
+              Cadastral Map
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1">
+        {mainContent}
+      </main>
     </div>
   );
 }

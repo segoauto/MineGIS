@@ -9,6 +9,7 @@ import { useMapStore, useAuthStore } from '../../store'
 import { leasesApi, type LeasePayload } from '../../api/leases'
 import clsx from 'clsx'
 import { format } from 'date-fns'
+// @ts-ignore
 import * as turf from '@turf/turf'
 
 const MINERAL_TYPES = [
@@ -221,116 +222,124 @@ export default function LeaseFormPanel() {
   const isSaving = createMutation.isPending || updateMutation.isPending
 
   return (
-    <div className="absolute right-0 top-0 bottom-0 z-30 w-[400px] bg-map-panel/98 backdrop-blur-md border-l border-map-border shadow-2xl flex flex-col">
+    <div className="absolute right-0 top-0 bottom-0 z-30 w-[420px] bg-white border-l border-slate-300 shadow-2xl flex flex-col font-sans">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-map-border flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-gov-600/20 border border-gov-600/30 flex items-center justify-center">
-            <PenLine size={13} className="text-gov-400" />
+      <div className="flex items-center justify-between px-4 py-3 bg-gov-600 text-white flex-shrink-0 border-b border-gov-700">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded bg-white/10 border border-white/20 flex items-center justify-center">
+            <PenLine size={16} className="text-white" />
           </div>
           <div>
-            <p className="text-map-text text-sm font-semibold">
-              {leaseFormEditId ? 'Edit Mining Lease' : 'New Mining Lease'}
+            <p className="text-sm font-bold tracking-tight">
+              {leaseFormEditId ? 'Edit Mining Lease Dossier' : 'New Mining Lease Registration'}
             </p>
-            <p className="text-map-muted text-xs">
-              {leaseFormEditId ? existingLease?.lease_id : 'Fill details and save'}
+            <p className="text-[11px] text-blue-100 flex items-center gap-1.5">
+              <span>{leaseFormEditId ? `Dossier ID: ${existingLease?.lease_id}` : 'DMG Form-A: Cadastral Entry'}</span>
             </p>
           </div>
         </div>
-        <button onClick={closeLeaseForm} className="text-map-muted hover:text-map-text p-1.5 rounded hover:bg-map-border transition-colors">
-          <X size={15} />
+        <button 
+          onClick={closeLeaseForm} 
+          className="text-blue-100 hover:text-white p-1.5 rounded hover:bg-white/10 transition-colors"
+          title="Close Form"
+        >
+          <X size={18} />
         </button>
       </div>
 
       {loadingEdit ? (
-        <div className="flex-1 flex items-center justify-center">
-          <Loader2 size={24} className="animate-spin text-gov-400" />
+        <div className="flex-1 flex flex-col items-center justify-center gap-2 bg-slate-50">
+          <Loader2 size={24} className="animate-spin text-gov-600" />
+          <span className="text-xs text-slate-500 font-medium">Fetching lease dossier records...</span>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
 
           {/* Boundary section */}
-          <Section label="Boundary Generation">
+          <Section label="Cadastral Boundary & Centroid" icon={MapPin}>
             <div className={clsx(
-              'rounded-lg p-3 border text-xs mb-3 flex flex-col gap-3',
+              'rounded-md p-3 border text-xs flex flex-col gap-2.5',
               drawnBoundaryGeoJSON || existingLease?.boundary_geojson
-                ? 'bg-green-900/10 border-green-700/30'
-                : 'bg-yellow-900/10 border-yellow-700/30'
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                : 'bg-amber-50 border-amber-300 text-amber-900'
             )}>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 font-medium">
                   {drawnBoundaryGeoJSON || existingLease?.boundary_geojson
-                    ? <CheckCircle size={12} className="text-green-400" />
-                    : <AlertCircle size={12} className="text-yellow-400" />
+                    ? <CheckCircle size={14} className="text-emerald-700" />
+                    : <AlertCircle size={14} className="text-amber-700" />
                   }
-                  <span className={drawnBoundaryGeoJSON || existingLease?.boundary_geojson ? 'text-green-300' : 'text-yellow-300'}>
-                    {drawnBoundaryGeoJSON ? 'Boundary ready' :
-                     existingLease?.boundary_geojson ? 'Using existing boundary' :
-                     'No boundary set'}
+                  <span>
+                    {drawnBoundaryGeoJSON ? 'Statutory Polygon Demarcated' :
+                     existingLease?.boundary_geojson ? 'Existing Boundary Loaded' :
+                     'Boundary Geometry Pending'}
                   </span>
                 </div>
+                <span className="text-[10px] font-mono uppercase bg-white/80 px-1.5 py-0.5 rounded border border-current">
+                  WGS84
+                </span>
               </div>
               
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2 pt-1 border-t border-current/20">
                 <button
                   type="button"
                   onClick={() => setDrawBoundaryMode(drawBoundaryMode === 'point' ? false : 'point')}
                   className={clsx(
-                    'flex items-center justify-center gap-1.5 px-2 py-1.5 rounded transition-colors border',
+                    'flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-xs font-semibold transition-colors border shadow-xs',
                     drawBoundaryMode === 'point'
-                      ? 'bg-gov-600 text-white border-gov-500'
-                      : 'bg-map-bg text-map-text border-map-border hover:bg-gov-600/20'
+                      ? 'bg-gov-600 text-white border-gov-700'
+                      : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
                   )}
                 >
-                  <MapPin size={12} />
-                  {drawBoundaryMode === 'point' ? 'Drop Pin...' : 'Location Pin'}
+                  <MapPin size={13} className={drawBoundaryMode === 'point' ? 'text-white' : 'text-gov-600'} />
+                  {drawBoundaryMode === 'point' ? 'Click on Map...' : 'Drop Centroid Pin'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setDrawBoundaryMode(drawBoundaryMode === 'polygon' ? false : 'polygon')}
                   className={clsx(
-                    'flex items-center justify-center gap-1.5 px-2 py-1.5 rounded transition-colors border',
+                    'flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-xs font-semibold transition-colors border shadow-xs',
                     drawBoundaryMode === 'polygon'
-                      ? 'bg-gov-600 text-white border-gov-500'
-                      : 'bg-map-bg text-map-text border-map-border hover:bg-gov-600/20'
+                      ? 'bg-gov-600 text-white border-gov-700'
+                      : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
                   )}
                 >
-                  <PenLine size={12} />
-                  {drawBoundaryMode === 'polygon' ? 'Drawing...' : 'Freehand Draw'}
+                  <PenLine size={13} className={drawBoundaryMode === 'polygon' ? 'text-white' : 'text-gov-600'} />
+                  {drawBoundaryMode === 'polygon' ? 'Demarcating...' : 'Draw Polygon'}
                 </button>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <FormField label="Center Latitude">
+              <FormField label="Centroid Latitude (DD)">
                 <input
                   type="number" step="0.000001"
                   value={lat} onChange={(e) => setLat(e.target.value)}
-                  placeholder="e.g. 17.3850" className={inputCls}
+                  placeholder="e.g. 17.385000" className={inputCls}
                 />
               </FormField>
-              <FormField label="Center Longitude">
+              <FormField label="Centroid Longitude (DD)">
                 <input
                   type="number" step="0.000001"
                   value={lon} onChange={(e) => setLon(e.target.value)}
-                  placeholder="e.g. 78.4867" className={inputCls}
+                  placeholder="e.g. 78.486700" className={inputCls}
                 />
               </FormField>
             </div>
             
-            <div className="grid grid-cols-2 gap-3 mt-3">
-              <FormField label="Area (Hectares) *">
+            <div className="grid grid-cols-2 gap-3 mt-1">
+              <FormField label="Demarcated Area (Ha) *">
                 <input
                   required type="number" step="0.01" min="0"
                   value={form.area_hectares ?? ''} onChange={f('area_hectares')}
                   placeholder="0.00" className={inputCls}
                 />
               </FormField>
-              <FormField label="Red Zone Buffer (m)">
+              <FormField label="Statutory Safety Buffer (m)">
                 <input
                   type="number" step="1" min="0"
                   value={redZoneBuffer} onChange={(e) => setRedZoneBuffer(e.target.value)}
-                  placeholder="Safety radius" className={inputCls}
+                  placeholder="e.g. 500" className={inputCls}
                 />
               </FormField>
             </div>
@@ -449,22 +458,26 @@ export default function LeaseFormPanel() {
           </Section>
 
           {/* Actions */}
-          <div className="sticky bottom-0 bg-map-panel/98 backdrop-blur-sm py-3 border-t border-map-border -mx-4 px-4 flex items-center gap-2">
+          <div className="sticky bottom-0 bg-white py-3 border-t border-slate-300 -mx-4 px-4 flex items-center gap-2 shadow-lg">
             {leaseFormEditId && (
               <>
                 {deleteConfirm ? (
                   <>
-                    <span className="text-red-400 text-xs mr-auto">Delete permanently?</span>
+                    <span className="text-red-700 text-xs font-semibold mr-auto">Confirm revoke?</span>
                     <button
                       type="button"
                       onClick={() => deleteMutation.mutate()}
                       disabled={deleteMutation.isPending}
-                      className="flex items-center gap-1.5 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-red-700 hover:bg-red-800 text-white text-xs font-bold rounded shadow-xs transition-colors"
                     >
                       {deleteMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-                      Confirm Delete
+                      Revoke
                     </button>
-                    <button type="button" onClick={() => setDeleteConfirm(false)} className="px-3 py-2 text-map-muted hover:text-map-text text-xs rounded-lg hover:bg-map-border transition-colors">
+                    <button 
+                      type="button" 
+                      onClick={() => setDeleteConfirm(false)} 
+                      className="px-2.5 py-1.5 text-slate-700 hover:bg-slate-100 text-xs font-medium border border-slate-300 rounded bg-white"
+                    >
                       Cancel
                     </button>
                   </>
@@ -472,10 +485,10 @@ export default function LeaseFormPanel() {
                   <button
                     type="button"
                     onClick={() => setDeleteConfirm(true)}
-                    className="flex items-center gap-1.5 px-3 py-2 text-red-400 hover:bg-red-900/20 text-xs font-medium rounded-lg transition-colors border border-red-600/30"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-red-700 hover:bg-red-50 text-xs font-semibold rounded border border-red-300 transition-colors"
                   >
-                    <Trash2 size={12} />
-                    Delete
+                    <Trash2 size={13} />
+                    Revoke Lease
                   </button>
                 )}
               </>
@@ -484,7 +497,7 @@ export default function LeaseFormPanel() {
             <button
               type="button"
               onClick={closeLeaseForm}
-              className="ml-auto px-3 py-2 text-map-muted hover:text-map-text text-xs rounded-lg hover:bg-map-border transition-colors"
+              className="ml-auto px-3 py-1.5 text-slate-700 hover:bg-slate-100 text-xs font-semibold rounded border border-slate-300 transition-colors"
             >
               Cancel
             </button>
@@ -492,10 +505,10 @@ export default function LeaseFormPanel() {
             <button
               type="submit"
               disabled={isSaving}
-              className="flex items-center gap-1.5 px-4 py-2 bg-gov-600 hover:bg-gov-700 text-white text-xs font-semibold rounded-lg transition-colors shadow-sm disabled:opacity-60"
+              className="flex items-center gap-1.5 px-4 py-1.5 bg-gov-600 hover:bg-gov-700 text-white text-xs font-bold rounded shadow transition-colors disabled:opacity-60"
             >
-              {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-              {leaseFormEditId ? 'Save Changes' : 'Create Lease'}
+              {isSaving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+              {leaseFormEditId ? 'Update Record' : 'Save Lease'}
             </button>
           </div>
         </form>
@@ -510,10 +523,10 @@ function Section({ label, icon: Icon = Building2, children }: {
   label: string; icon?: React.ElementType; children: React.ReactNode
 }) {
   return (
-    <div className="space-y-2.5">
-      <div className="flex items-center gap-1.5">
-        <Icon size={11} className="text-gov-400" />
-        <span className="text-map-muted text-xs font-semibold uppercase tracking-wider">{label}</span>
+    <div className="bg-white rounded border border-slate-300 p-3 shadow-xs space-y-2.5">
+      <div className="flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
+        <Icon size={13} className="text-gov-600" />
+        <span className="text-slate-800 text-xs font-bold uppercase tracking-wider">{label}</span>
       </div>
       {children}
     </div>
@@ -523,15 +536,15 @@ function Section({ label, icon: Icon = Building2, children }: {
 function FormField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
-      <label className="text-map-muted text-xs font-medium">{label}</label>
+      <label className="text-slate-700 text-xs font-semibold">{label}</label>
       {children}
     </div>
   )
 }
 
 const inputCls = [
-  'w-full bg-map-bg border border-map-border rounded-lg px-3 py-2',
-  'text-map-text text-xs placeholder-map-border',
-  'focus:outline-none focus:border-gov-500 focus:ring-1 focus:ring-gov-500/30',
-  'transition-colors',
+  'w-full bg-white border border-slate-300 rounded px-2.5 py-1.5',
+  'text-slate-900 text-xs font-medium placeholder-slate-400',
+  'focus:outline-none focus:border-gov-600 focus:ring-1 focus:ring-gov-600',
+  'transition-colors shadow-xs',
 ].join(' ')

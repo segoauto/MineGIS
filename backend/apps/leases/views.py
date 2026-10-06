@@ -3,10 +3,14 @@ Mining Lease views — Full CRUD + GeoJSON + spatial analysis endpoints
 """
 import json
 import logging
+import math
+from datetime import datetime, date
+from django.db import transaction
 from django.db.models import Q
-from django.contrib.gis.geos import Point, GEOSGeometry
+from django.contrib.gis.geos import Point, GEOSGeometry, Polygon, MultiPolygon
 from django.contrib.gis.db.models.functions import Distance
 from rest_framework import status, viewsets
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -51,7 +55,13 @@ class LeaseViewSet(viewsets.ModelViewSet):
     ordering = ['-created_at']
 
     def get_queryset(self):
-        return MiningLease.objects.select_related('created_by').all()
+        qs = MiningLease.objects.select_related('created_by').all()
+        user = getattr(self.request, 'user', None)
+        if user and user.is_authenticated and hasattr(user, 'profile'):
+            district = (getattr(user.profile, 'district', '') or '').strip()
+            if district and district.lower() not in ['statewide', 'all', 'hq', 'state hq', 'hyderabad hq', 'statewide directorate']:
+                qs = qs.filter(district__iexact=district)
+        return qs
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -365,3 +375,242 @@ class LeaseViewSet(viewsets.ModelViewSet):
         response = HttpResponse(pdf_file, content_type='application/pdf')
         response['Content-Disposition'] = 'attachment; filename="minegis_official_report.pdf"'
         return response
+
+    @action(detail=False, methods=['post'], url_path='bulk-import', parser_classes=[MultiPartParser, FormParser, JSONParser])
+    def bulk_import(self, request: Request) -> Response:
+        """
+        POST /api/leases/bulk-import/
+        Bulk upload and import mining lease records from CSV/XLSX file or JSON payload.
+        """
+        import pandas as pd
+        import io
+
+        records = []
+        uploaded_file = request.FILES.get('file')
+
+        if uploaded_file:
+            filename = uploaded_file.name.lower()
+            try:
+                if filename.endswith('.csv'):
+                    content = uploaded_file.read()
+                    # Try utf-8 then latin-1 fallback
+                    try:
+                        df = pd.read_csv(io.BytesIO(content), encoding='utf-8')
+                    except UnicodeDecodeError:
+                        df = pd.read_csv(io.BytesIO(content), encoding='latin-1')
+                elif filename.endswith(('.xlsx', '.xls')):
+                    df = pd.read_excel(uploaded_file)
+                else:
+                    return Response(
+                        {'error': 'Unsupported file format. Please upload a .csv, .xlsx, or .xls file.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                # Replace NaN with None
+                df = df.where(pd.notnull(df), None)
+                records = df.to_dict(orient='records')
+            except Exception as e:
+                logger.exception("Bulk file parsing error: %s", e)
+                return Response(
+                    {'error': f'Failed to parse file: {str(e)}'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        elif 'leases' in request.data:
+            records = request.data.get('leases', [])
+            if not isinstance(records, list):
+                return Response({'error': '"leases" must be a list of records.'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response(
+                {'error': 'No file or "leases" array provided.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not records:
+            return Response({'error': 'No data rows found in the uploaded file.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Jurisdiction restriction check for logged-in user
+        user = getattr(request, 'user', None)
+        user_district = None
+        if user and user.is_authenticated and hasattr(user, 'profile'):
+            user_dist = (getattr(user.profile, 'district', '') or '').strip()
+            if user_dist and user_dist.lower() not in ['statewide', 'all', 'hq', 'state hq', 'hyderabad hq', 'statewide directorate']:
+                user_district = user_dist
+
+        MINERAL_MAP = {
+            'COAL': 'COAL', 'IRON ORE': 'IRON_ORE', 'IRON_ORE': 'IRON_ORE',
+            'GRANITE': 'GRANITE', 'LIMESTONE': 'LIMESTONE', 'FLUORITE': 'FLUORITE',
+            'DOLOMITE': 'DOLOMITE', 'SAND': 'SAND', 'RIVER SAND': 'SAND',
+            'QUARTZ': 'OTHER', 'FELDSPAR': 'OTHER', 'OTHER': 'OTHER', 'STONE': 'OTHER',
+            'ROAD METAL': 'OTHER', 'GRAVEL': 'OTHER'
+        }
+
+        created_count = 0
+        updated_count = 0
+        errors = []
+        imported_leases = []
+
+        def get_val(row_dict, aliases, default=''):
+            # Case-insensitive header match
+            lower_dict = {str(k).strip().lower().replace('_', ' '): v for k, v in row_dict.items() if k is not None}
+            for alias in aliases:
+                norm_alias = alias.strip().lower().replace('_', ' ')
+                if norm_alias in lower_dict and lower_dict[norm_alias] is not None:
+                    val = lower_dict[norm_alias]
+                    return str(val).strip() if not isinstance(val, (int, float)) else val
+            return default
+
+        for idx, row in enumerate(records, start=1):
+            try:
+                mine_name = get_val(row, ['mine_name', 'mine name', 'minename', 'quarry_name', 'name', 'mine'])
+                if not mine_name:
+                    errors.append({'row': idx, 'error': 'Mandatory field "mine_name" is missing.'})
+                    continue
+
+                district = get_val(row, ['district', 'district_name', 'district name'], user_district or 'Telangana')
+                if user_district and district.lower() != user_district.lower():
+                    errors.append({'row': idx, 'error': f'District "{district}" is outside your jurisdiction ({user_district}).'})
+                    continue
+
+                raw_lease_id = get_val(row, ['lease_id', 'lease id', 'leaseid', 'id', 'concession_id'])
+                if not raw_lease_id:
+                    # Auto-generate statutory code if missing
+                    dist_code = district.replace(' ', '')[:3].upper() if district else 'TS'
+                    raw_lease_id = f"TS-{dist_code}-{int(datetime.now().timestamp()) % 100000:05d}-{idx}"
+
+                raw_mineral = str(get_val(row, ['mineral_type', 'mineral type', 'mineral', 'mineral_classification'], 'OTHER')).upper().strip()
+                mineral_type = MINERAL_MAP.get(raw_mineral, 'OTHER')
+
+                raw_status = str(get_val(row, ['status', 'lease_status', 'state'], 'ACTIVE')).upper().strip()
+                status_val = 'ACTIVE'
+                for s in ['ACTIVE', 'EXPIRED', 'PENDING', 'SUSPENDED', 'SURRENDERED']:
+                    if s in raw_status:
+                        status_val = s
+                        break
+
+                holder_name = get_val(row, ['leaseholder_name', 'leaseholder name', 'leaseholder', 'holder_name', 'company', 'holder'], 'Registered Mining Lessee')
+                holder_pan = get_val(row, ['leaseholder_pan', 'leaseholder pan', 'pan', 'pan_number'], 'AAACT9999K')[:10].upper()
+                holder_contact = get_val(row, ['leaseholder_contact', 'leaseholder contact', 'contact', 'phone', 'mobile'], '+91 800-425-MINE')
+                holder_email = get_val(row, ['leaseholder_email', 'leaseholder email', 'email'], 'mining@telangana.gov.in')
+
+                mandal = get_val(row, ['mandal', 'mandal_name', 'taluka', 'tehsil'], 'Revenue Mandal')
+                village = get_val(row, ['village', 'village_name', 'panchayat'], 'Revenue Village')
+                survey_no = get_val(row, ['survey_number', 'survey number', 'survey_no', 'sy_no', 'sy no', 'survey'], 'Sy. No. Unsurveyed')
+
+                try:
+                    area_ha = float(get_val(row, ['area_hectares', 'area hectares', 'area_ha', 'area (ha)', 'area'], 10.0))
+                    if area_ha <= 0:
+                        area_ha = 10.0
+                except (ValueError, TypeError):
+                    area_ha = 10.0
+
+                try:
+                    royalty_due = float(get_val(row, ['royalty_due', 'royalty due', 'royalty', 'due_amount'], 0.0))
+                except (ValueError, TypeError):
+                    royalty_due = 0.0
+
+                # Dates
+                today_str = date.today().isoformat()
+                ten_years_later = date.today().replace(year=date.today().year + 10).isoformat()
+                
+                def parse_date_val(val_str, default_val):
+                    if not val_str:
+                        return default_val
+                    val_str = str(val_str).strip()
+                    for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%Y/%m/%d', '%d.%m.%Y']:
+                        try:
+                            return datetime.strptime(val_str, fmt).date().isoformat()
+                        except ValueError:
+                            continue
+                    return default_val
+
+                grant_date = parse_date_val(get_val(row, ['grant_date', 'grant date', 'granted_date']), today_str)
+                commence_date = parse_date_val(get_val(row, ['commencement_date', 'commencement date', 'commence_date']), grant_date)
+                valid_from = parse_date_val(get_val(row, ['valid_from', 'valid from', 'from_date']), commence_date)
+                valid_till = parse_date_val(get_val(row, ['valid_till', 'valid till', 'to_date', 'expiry_date']), ten_years_later)
+
+                # Coordinates & PostGIS Centroid / Boundary
+                lat_raw = get_val(row, ['latitude', 'lat', 'centroid_lat', 'y'])
+                lon_raw = get_val(row, ['longitude', 'lon', 'long', 'centroid_lon', 'x'])
+
+                centroid_geom = None
+                boundary_geom = None
+
+                if lat_raw and lon_raw:
+                    try:
+                        c_lat = float(lat_raw)
+                        c_lon = float(lon_raw)
+                        if 15.0 <= c_lat <= 20.5 and 77.0 <= c_lon <= 82.0:
+                            centroid_geom = Point(c_lon, c_lat, srid=4326)
+                            # Create a realistic polygon footprint around centroid based on area
+                            side_meters = math.sqrt(area_ha * 10000)
+                            delta_lat = (side_meters / 2.0) / 111000.0
+                            delta_lon = (side_meters / 2.0) / 105000.0
+                            poly = Polygon([
+                                (c_lon - delta_lon, c_lat - delta_lat),
+                                (c_lon + delta_lon, c_lat - delta_lat),
+                                (c_lon + delta_lon, c_lat + delta_lat),
+                                (c_lon - delta_lon, c_lat + delta_lat),
+                                (c_lon - delta_lon, c_lat - delta_lat),
+                            ], srid=4326)
+                            boundary_geom = MultiPolygon([poly], srid=4326)
+                    except (ValueError, TypeError):
+                        pass
+
+                with transaction.atomic():
+                    lease, is_created = MiningLease.objects.update_or_create(
+                        lease_id=raw_lease_id,
+                        defaults={
+                            'mine_name': mine_name,
+                            'mineral_type': mineral_type,
+                            'leaseholder_name': holder_name,
+                            'leaseholder_pan': holder_pan,
+                            'leaseholder_contact': holder_contact,
+                            'leaseholder_email': holder_email,
+                            'state': 'Telangana',
+                            'district': district,
+                            'mandal': mandal,
+                            'village': village,
+                            'survey_number': survey_no,
+                            'area_hectares': area_ha,
+                            'centroid': centroid_geom,
+                            'boundary': boundary_geom,
+                            'grant_date': grant_date,
+                            'commencement_date': commence_date,
+                            'valid_from': valid_from,
+                            'valid_till': valid_till,
+                            'status': status_val,
+                            'royalty_due': royalty_due,
+                            'created_by': user if user and user.is_authenticated else None,
+                        }
+                    )
+
+                if is_created:
+                    created_count += 1
+                else:
+                    updated_count += 1
+
+                imported_leases.append({
+                    'id': lease.id,
+                    'lease_id': lease.lease_id,
+                    'mine_name': lease.mine_name,
+                    'mineral_type': lease.mineral_type,
+                    'district': lease.district,
+                    'mandal': lease.mandal,
+                    'village': lease.village,
+                    'area_hectares': float(lease.area_hectares),
+                    'status': lease.status,
+                    'is_new': is_created,
+                })
+
+            except Exception as row_err:
+                logger.warning("Error processing row %s: %s", idx, row_err)
+                errors.append({'row': idx, 'error': str(row_err)})
+
+        return Response({
+            'success': True,
+            'total_processed': len(records),
+            'created_count': created_count,
+            'updated_count': updated_count,
+            'failed_count': len(errors),
+            'errors': errors,
+            'imported_leases': imported_leases,
+        }, status=status.HTTP_200_OK if (created_count + updated_count) > 0 or not errors else status.HTTP_400_BAD_REQUEST)

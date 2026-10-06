@@ -215,6 +215,9 @@ GEOSERVER_WORKSPACE = os.environ.get('GEOSERVER_WORKSPACE', 'minegis_ts')
 # ─── Netradyne ───────────────────────────────────────────────
 NETRADYNE_API_URL = os.environ.get('NETRADYNE_API_URL', 'https://api.netradyne.com')
 NETRADYNE_API_KEY = os.environ.get('NETRADYNE_API_KEY', '')
+NETRADYNE_CLIENT_ID = os.environ.get('NETRADYNE_CLIENT_ID', '')
+NETRADYNE_CLIENT_SECRET = os.environ.get('NETRADYNE_CLIENT_SECRET', '')
+NETRADYNE_FLEET_NAME = os.environ.get('NETRADYNE_FLEET_NAME', '')
 NETRADYNE_WEBHOOK_SECRET = os.environ.get('NETRADYNE_WEBHOOK_SECRET', '')
 NETRADYNE_MOCK_MODE = os.environ.get('NETRADYNE_MOCK_MODE', 'true').lower() == 'true'
 VEHICLE_SYNC_INTERVAL_SECONDS = int(os.environ.get('VEHICLE_SYNC_INTERVAL_SECONDS', 30))

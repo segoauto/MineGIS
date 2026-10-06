@@ -55,6 +55,10 @@ export interface Vehicle {
   engine_on: boolean
   current_lease_id: string | null
   current_lease_name: string | null
+  odometer?: number
+  chassis_number?: string
+  gvwr?: string
+  license_state?: string
 }
 
 export type VehicleType = 'INSPECTION' | 'ENFORCEMENT' | 'SURVEY' | 'TRANSPORT' | 'OFFICIAL'
@@ -179,11 +183,11 @@ export interface UserProfile {
 
 // ─── Map / UI State Types ─────────────────────────────────────────────────────
 
-export type BaseLayerType = 'osm' | 'satellite' | 'terrain'
+export type BaseLayerType = 'osm' | 'satellite' | 'terrain' | 'carto_light'
 
 export type ActiveTool =
   | 'identify' | 'measure_distance' | 'measure_area'
-  | 'buffer' | 'conflict' | 'annotate' | null
+  | 'buffer' | 'conflict' | 'annotate' | 'ndvi_wi' | null
 
 export interface LayerConfig {
   id: string
@@ -192,7 +196,33 @@ export interface LayerConfig {
   visible: boolean
   opacity: number
   color: string
-  category: 'lease' | 'regulatory' | 'survey' | 'vehicle'
+  category: 'lease' | 'regulatory' | 'survey' | 'vehicle' | 'environmental' | 'analysis'
+}
+
+export interface SpectralAnalysisResult {
+  lease_id: string
+  mine_name: string
+  mineral_type: string
+  district: string
+  date: string
+  ndvi: {
+    pit_mean: number
+    buffer_mean: number
+    change_pct_2yr: number
+    canopy_loss_ha: number
+    status: 'NORMAL' | 'WARNING' | 'CRITICAL_ENCROACHMENT'
+    status_text: string
+  }
+  wi: {
+    ndwi_mean: number
+    water_distance_m: number
+    moisture_class: 'DRY_QUARRY' | 'DAMP_SAND' | 'SATURATED_PIT' | 'RESERVOIR_PROXIMITY'
+    water_risk: 'LOW' | 'MEDIUM' | 'BUFFER_BREACH'
+    status_text: string
+  }
+  historical_trends: { year: string; ndvi: number; ndwi: number }[]
+  vegetation_histogram: { bin: string; value: number; color: string }[]
+  water_histogram: { bin: string; value: number; color: string }[]
 }
 
 export interface MeasurementResult {

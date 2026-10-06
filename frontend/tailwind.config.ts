@@ -5,47 +5,53 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Telangana Government blue palette
+        // Telangana Government official blue palette
         gov: {
-          50:  '#EFF4FB',
-          100: '#D6E4F4',
-          200: '#ADC9E9',
-          300: '#84AEDF',
-          400: '#5B93D4',
-          500: '#3278C9',
-          600: '#1A3C6E',   // Primary government blue
-          700: '#163261',
-          800: '#112754',
-          900: '#0C1C47',
+          50:  '#F0F5FA',
+          100: '#E1ECF4',
+          200: '#C3D9E9',
+          300: '#95B8D6',
+          400: '#5C90BF',
+          500: '#2A6BA3',
+          600: '#0B3C5D',   // Official Indian/Telangana Government Deep Navy Blue
+          700: '#082D47',
+          800: '#062033',
+          900: '#041521',
         },
-        // Saffron accent (Indian flag inspired)
+        // Indian National Tricolor accents
+        tricolor: {
+          saffron: '#FF671F',
+          white:   '#FFFFFF',
+          green:   '#046A38',
+          navy:    '#06038D',
+        },
         saffron: {
-          400: '#FFB347',
-          500: '#FF6B2B',
-          600: '#E85A1A',
+          400: '#FF9E43',
+          500: '#FF671F',
+          600: '#E65100',
         },
-        // Mine status colors
+        // Mine status colors (high-contrast official badges)
         mine: {
-          active:     '#2563A8',
-          expired:    '#6B7280',
-          pending:    '#CA8A04',
-          suspended:  '#DC2626',
-          surrendered:'#7C3AED',
+          active:     '#0B3C5D',
+          expired:    '#475569',
+          pending:    '#B45309',
+          suspended:  '#B91C1C',
+          surrendered:'#6D28D9',
         },
         // Vehicle status colors
         vehicle: {
-          moving:  '#22C55E',
-          stopped: '#3B82F6',
-          offline: '#9CA3AF',
-          alert:   '#EF4444',
+          moving:  '#15803D',
+          stopped: '#1D4ED8',
+          offline: '#64748B',
+          alert:   '#DC2626',
         },
-        // Map background
+        // Official Government Light Portal theme
         map: {
-          bg:      '#0F172A',
-          panel:   '#1E293B',
-          border:  '#334155',
-          text:    '#F1F5F9',
-          muted:   '#94A3B8',
+          bg:      '#F1F5F9', // Clean light gray canvas
+          panel:   '#FFFFFF', // Crisp white official panels
+          border:  '#CBD5E1', // Slate-300 clean borders
+          text:    '#0F172A', // Deep slate-900 readable text
+          muted:   '#475569', // Slate-600 readable labels
         },
       },
       fontFamily: {

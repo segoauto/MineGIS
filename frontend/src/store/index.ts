@@ -1,11 +1,29 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { REAL_NETRADYNE_VEHICLES } from '../data/realVehicles'
 import type {
   BaseLayerType, ActiveTool, LayerConfig,
   MiningLease, Vehicle, VehicleAlert,
   MeasurementResult, BufferResult, ConflictResult,
-  SearchResult, SpatialBookmark,
+  SearchResult, SpatialBookmark, SpectralAnalysisResult,
 } from '../types'
+import { getUserJurisdiction } from '../utils/districts'
+
+export interface ActiveGeofenceAlertPopup {
+  id: string | number
+  vehicleNumber: string
+  driverName?: string
+  eventType: 'ENTRY' | 'EXIT' | 'TRESPASS'
+  zoneName: string
+  zoneType?: string
+  district?: string
+  speedKmh?: number
+  timestamp: string
+  lon: number
+  lat: number
+  severity: 'CRITICAL' | 'HIGH' | 'WARNING'
+  vehicleId?: number
+}
 
 interface MapStore {
   // ─── Map state ────────────────────────────────────────────
@@ -45,9 +63,11 @@ interface MapStore {
   vehicleAlerts: VehicleAlert[]
   unreadAlertCount: number
 
-  // ─── Draw / Lease Form state ──────────────────────────────
+  // ─── Draw / Lease / Geofence state ────────────────────────
   drawBoundaryMode: 'polygon' | 'point' | false
+  drawTarget: 'lease' | 'geofence' | null
   drawnBoundaryGeoJSON: object | null
+  drawnGeofenceGeoJSON: object | null
   drawnPointCoords: [number, number] | null
   leaseFormOpen: boolean
   leaseFormEditId: string | null
@@ -57,6 +77,15 @@ interface MapStore {
   vehicleTrackingPanelOpen: boolean
   layerPanelOpen: boolean
   reportModalOpen: boolean
+  compareImageryOpen: boolean
+  tenderDemoModalOpen: boolean
+  bulkUploadModalOpen: boolean
+  spectralAnalysisOpen: boolean
+  spectralAnalysisResult: SpectralAnalysisResult | null
+  activeGeofenceAlertPopup: ActiveGeofenceAlertPopup | null
+  setActiveGeofenceAlertPopup: (alert: ActiveGeofenceAlertPopup | null) => void
+  triggerGeofenceBreachDemo: (customZone?: string, customVehicleNumber?: string) => void
+  mapFlyToTarget: { lon: number; lat: number; zoom?: number; ping?: boolean } | null
 
   // ─── GeoServer Cache Busting ──────────────────────────────
   mapRefreshTrigger: number
@@ -94,10 +123,19 @@ interface MapStore {
   setVehicleTrackingPanelOpen: (open: boolean) => void
   setLayerPanelOpen: (open: boolean) => void
   setReportModalOpen: (open: boolean) => void
+  setCompareImageryOpen: (open: boolean) => void
+  setTenderDemoModalOpen: (open: boolean) => void
+  setBulkUploadModalOpen: (open: boolean) => void
+  setSpectralAnalysisOpen: (open: boolean) => void
+  setSpectralAnalysisResult: (result: SpectralAnalysisResult | null) => void
+  setMapFlyToTarget: (target: { lon: number; lat: number; zoom?: number; ping?: boolean } | null) => void
+  resetDemoData: () => void
 
   // Draw/form actions
-  setDrawBoundaryMode: (mode: 'polygon' | 'point' | false) => void
+  setDrawBoundaryMode: (mode: 'polygon' | 'point' | false, target?: 'lease' | 'geofence') => void
+  setDrawTarget: (target: 'lease' | 'geofence' | null) => void
   setDrawnBoundaryGeoJSON: (geojson: object | null) => void
+  setDrawnGeofenceGeoJSON: (geojson: object | null) => void
   setDrawnPointCoords: (coords: [number, number] | null) => void
   openLeaseCreateForm: (boundary?: object, point?: [number, number] | null) => void
   openLeaseEditForm: (leaseId: string) => void
@@ -109,12 +147,48 @@ interface MapStore {
 const DEFAULT_LAYERS: LayerConfig[] = [
   {
     id: 'mining_leases',
-    label: 'Mining Leases',
+    label: 'Mining Leases (815 Mines)',
     geoserverLayer: 'minegis_ts:mining_leases',
     visible: true,
     opacity: 0.85,
-    color: '#2563A8',
+    color: '#E11D48',
     category: 'lease',
+  },
+  {
+    id: 'mines_points',
+    label: 'Mine Centers & Points',
+    geoserverLayer: 'minegis_ts:mines_points',
+    visible: true,
+    opacity: 0.9,
+    color: '#F42A5F',
+    category: 'lease',
+  },
+  {
+    id: 'districts',
+    label: 'Districts Boundary',
+    geoserverLayer: 'minegis_ts:districts',
+    visible: true,
+    opacity: 0.8,
+    color: '#15803D',
+    category: 'regulatory',
+  },
+  {
+    id: 'mandals',
+    label: 'Mandals Boundary',
+    geoserverLayer: 'minegis_ts:mandals',
+    visible: false,
+    opacity: 0.7,
+    color: '#3B82F6',
+    category: 'regulatory',
+  },
+  {
+    id: 'state_boundary',
+    label: 'Telangana State Boundary',
+    geoserverLayer: 'minegis_ts:state',
+    visible: true,
+    opacity: 0.9,
+    color: '#1F4A8A',
+    category: 'regulatory',
   },
   {
     id: 'forest',
@@ -171,15 +245,6 @@ const DEFAULT_LAYERS: LayerConfig[] = [
     category: 'lease',
   },
   {
-    id: 'admin_boundary',
-    label: 'Administrative Boundaries',
-    geoserverLayer: 'minegis_ts:spatial_layers',
-    visible: false,
-    opacity: 0.8,
-    color: '#6366F1',
-    category: 'regulatory',
-  },
-  {
     id: 'transport_networks',
     label: 'Transportation Networks',
     geoserverLayer: 'minegis_ts:spatial_layers',
@@ -188,6 +253,24 @@ const DEFAULT_LAYERS: LayerConfig[] = [
     color: '#374151',
     category: 'regulatory',
   },
+  {
+    id: 'ndvi_analysis',
+    label: 'NDVI Vegetation Health (Sentinel-2)',
+    geoserverLayer: 'minegis_ts:ndvi_spectral',
+    visible: false,
+    opacity: 0.75,
+    color: '#22C55E',
+    category: 'environmental',
+  },
+  {
+    id: 'wi_analysis',
+    label: 'WI Water & Moisture Index (NDWI)',
+    geoserverLayer: 'minegis_ts:wi_spectral',
+    visible: false,
+    opacity: 0.75,
+    color: '#06B6D4',
+    category: 'environmental',
+  },
 ]
 
 export const useMapStore = create<MapStore>()(
@@ -195,8 +278,8 @@ export const useMapStore = create<MapStore>()(
     (set) => ({
       // ─── Initial state ─────────────────────────────────────
       baseLayer: 'osm',
-      zoom: 11,
-      center: [80.1, 17.5],
+      zoom: 8.5,
+      center: [78.9, 17.6],
       cursorCoords: null,
       temporalDate: '2024-04-01',
 
@@ -218,14 +301,16 @@ export const useMapStore = create<MapStore>()(
 
       bookmarks: [],
 
-      vehicles: [],
+      vehicles: REAL_NETRADYNE_VEHICLES,
       vehiclesVisible: true,
       selectedVehicleId: null,
       vehicleAlerts: [],
       unreadAlertCount: 0,
 
       drawBoundaryMode: false,
+      drawTarget: null,
       drawnBoundaryGeoJSON: null,
+      drawnGeofenceGeoJSON: null,
       leaseFormOpen: false,
       leaseFormEditId: null,
 
@@ -234,6 +319,13 @@ export const useMapStore = create<MapStore>()(
       layerPanelOpen: true,
       drawnPointCoords: null,
       reportModalOpen: false,
+      compareImageryOpen: false,
+      tenderDemoModalOpen: false,
+      bulkUploadModalOpen: false,
+      spectralAnalysisOpen: false,
+      spectralAnalysisResult: null,
+      mapFlyToTarget: null,
+      activeGeofenceAlertPopup: null,
       mapRefreshTrigger: 0,
 
       // ─── Actions ──────────────────────────────────────────
@@ -300,10 +392,113 @@ export const useMapStore = create<MapStore>()(
       setVehicleTrackingPanelOpen: (vehicleTrackingPanelOpen) => set({ vehicleTrackingPanelOpen }),
       setLayerPanelOpen: (layerPanelOpen) => set({ layerPanelOpen }),
       setReportModalOpen: (reportModalOpen) => set({ reportModalOpen }),
+      setCompareImageryOpen: (compareImageryOpen) => set({ compareImageryOpen }),
+      setTenderDemoModalOpen: (tenderDemoModalOpen) => set({ tenderDemoModalOpen }),
+      setBulkUploadModalOpen: (bulkUploadModalOpen) => set({ bulkUploadModalOpen }),
+      setSpectralAnalysisOpen: (spectralAnalysisOpen) => set({ spectralAnalysisOpen }),
+      setSpectralAnalysisResult: (spectralAnalysisResult) => set({ spectralAnalysisResult }),
+      setMapFlyToTarget: (mapFlyToTarget) => set({ mapFlyToTarget }),
+      setActiveGeofenceAlertPopup: (activeGeofenceAlertPopup) => set({ activeGeofenceAlertPopup }),
 
-      // Draw & Form
-      setDrawBoundaryMode: (mode) => set({ drawBoundaryMode: mode }),
+      triggerGeofenceBreachDemo: (customZone, customVehicleNumber) => {
+        const state = useMapStore.getState()
+        const veh = (customVehicleNumber ? state.vehicles.find((v) => v.vehicle_number === customVehicleNumber) : null)
+          || state.vehicles.find((v) => v.id === 4134066)
+          || state.vehicles[0]
+          || {
+            id: 4134066,
+            vehicle_number: 'TG07U1889',
+            driver_name: 'S. Ramakrishna',
+            assigned_district: 'Mahabubnagar',
+            last_lon: 77.556427,
+            last_lat: 16.526802,
+            current_speed_kmh: 54,
+          }
+
+        const lon = veh.last_lon || 77.556427
+        const lat = veh.last_lat || 16.526802
+        const zone = customZone || 'Godavari Reach-7 Sand Extraction Geofence'
+
+        const alertPopup: ActiveGeofenceAlertPopup = {
+          id: Date.now(),
+          vehicleNumber: veh.vehicle_number,
+          driverName: veh.driver_name || 'Designated Driver',
+          eventType: 'TRESPASS',
+          zoneName: zone,
+          zoneType: 'High-Security Mining Perimeter & Transit Corridor',
+          district: veh.assigned_district || 'Telangana State',
+          speedKmh: veh.current_speed_kmh || 52,
+          timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          lon,
+          lat,
+          severity: 'CRITICAL',
+          vehicleId: veh.id,
+        }
+
+        const vehicleAlert: VehicleAlert = {
+          id: Date.now(),
+          vehicle_number: veh.vehicle_number,
+          driver_name: veh.driver_name || 'Designated Driver',
+          alert_type: 'GEOFENCE_EXIT',
+          alert_type_display: `Geofence Trespass: Unauthorized Egress from ${zone}`,
+          severity: 'HIGH',
+          alert_lon: lon,
+          alert_lat: lat,
+          lease_id: 'TS-GEOF-ALERT',
+          mine_name: zone,
+          timestamp: new Date().toISOString(),
+          description: `Telemetry Alert: ${veh.vehicle_number} breached restricted boundary at ${zone}. Flying Squad alerted.`,
+          is_resolved: false,
+          resolved_by_name: null,
+          resolved_at: null,
+        }
+
+        set({
+          activeGeofenceAlertPopup: alertPopup,
+          selectedVehicleId: veh.id,
+          mapFlyToTarget: { lon, lat, zoom: 15, ping: true },
+        })
+        state.addVehicleAlert(vehicleAlert)
+      },
+
+      resetDemoData: () => set({
+        baseLayer: 'osm',
+        zoom: 11,
+        center: [80.1, 17.5],
+        selectedLeaseId: null,
+        selectedLeaseData: null,
+        activeTool: null,
+        measurementResult: null,
+        bufferResult: null,
+        conflictResult: null,
+        searchQuery: '',
+        searchResults: [],
+        selectedVehicleId: null,
+        vehicleAlerts: [],
+        unreadAlertCount: 0,
+        drawBoundaryMode: false,
+        drawTarget: null,
+        drawnBoundaryGeoJSON: null,
+        drawnGeofenceGeoJSON: null,
+        drawnPointCoords: null,
+        leaseFormOpen: false,
+        leaseFormEditId: null,
+        leaseInfoPanelOpen: false,
+        vehicleTrackingPanelOpen: false,
+        layerPanelOpen: true,
+        reportModalOpen: false,
+        compareImageryOpen: false,
+        tenderDemoModalOpen: false,
+        bulkUploadModalOpen: false,
+        activeGeofenceAlertPopup: null,
+        mapFlyToTarget: { lon: 80.1, lat: 17.5, zoom: 11 },
+      }),
+
+
+      setDrawBoundaryMode: (mode, target = 'lease') => set({ drawBoundaryMode: mode, drawTarget: mode ? target : null }),
+      setDrawTarget: (drawTarget) => set({ drawTarget }),
       setDrawnBoundaryGeoJSON: (geojson) => set({ drawnBoundaryGeoJSON: geojson }),
+      setDrawnGeofenceGeoJSON: (geojson) => set({ drawnGeofenceGeoJSON: geojson }),
       setDrawnPointCoords: (coords) => set({ drawnPointCoords: coords }),
       
       openLeaseCreateForm: (boundary, point) => set({
@@ -312,11 +507,13 @@ export const useMapStore = create<MapStore>()(
         drawnBoundaryGeoJSON: boundary ?? null,
         drawnPointCoords: point ?? null,
         drawBoundaryMode: false,
+        drawTarget: null,
       }),
       openLeaseEditForm: (leaseId) => set({
         leaseFormOpen: true,
         leaseFormEditId: leaseId,
         drawBoundaryMode: false,
+        drawTarget: null,
       }),
       closeLeaseForm: () => set({
         leaseFormOpen: false,
@@ -324,6 +521,7 @@ export const useMapStore = create<MapStore>()(
         drawnBoundaryGeoJSON: null,
         drawnPointCoords: null,
         drawBoundaryMode: false,
+        drawTarget: null,
       }),
       
       triggerMapRefresh: () => set({ mapRefreshTrigger: Date.now() }),
@@ -356,7 +554,19 @@ export const useAuthStore = create<AuthStore>()(
     (set) => ({
       user: null,
       isAuthenticated: false,
-      setUser: (user) => set({ user, isAuthenticated: user !== null }),
+      setUser: (user) => {
+        set({ user, isAuthenticated: user !== null })
+        if (user?.profile?.district) {
+          const jur = getUserJurisdiction(user.profile.district)
+          if (jur.name !== 'Telangana State') {
+            useMapStore.setState({
+              center: jur.center,
+              zoom: jur.defaultZoom,
+              mapFlyToTarget: { lon: jur.center[0], lat: jur.center[1], zoom: jur.defaultZoom }
+            })
+          }
+        }
+      },
       logout: () => set({ user: null, isAuthenticated: false }),
     }),
     {

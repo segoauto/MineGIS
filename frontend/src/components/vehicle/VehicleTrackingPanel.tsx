@@ -3,11 +3,12 @@ import { useQuery } from '@tanstack/react-query'
 import {
   Truck, AlertCircle, ChevronDown, ChevronUp,
   MapPin, Navigation, Clock, Wifi, WifiOff,
-  CheckCircle, Eye,
+  CheckCircle, Eye, Video,
 } from 'lucide-react'
 import { formatDistanceToNow, format } from 'date-fns'
 import { useMapStore } from '../../store'
 import { vehiclesApi } from '../../api/vehicles'
+import NetradyneVideoModal from '../fleet/NetradyneVideoModal'
 import clsx from 'clsx'
 import type { Vehicle, VehicleAlert } from '../../types'
 
@@ -24,6 +25,7 @@ export default function VehicleTrackingPanel() {
   const [activeTab, setActiveTab] = useState<VehicleTab>('vehicles')
   const [filter, setFilter] = useState<VehicleFilter>('all')
   const [panelHeight, setPanelHeight] = useState(280)
+  const [videoVehicle, setVideoVehicle] = useState<Vehicle | null>(null)
   const isResizing = useRef(false)
 
   // ─── Live vehicle list ────────────────────────────────────────────────────
@@ -73,12 +75,12 @@ export default function VehicleTrackingPanel() {
     return (
       <button
         onClick={() => setVehicleTrackingPanelOpen(true)}
-        className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-map-panel border border-map-border rounded-full px-4 py-2 text-map-text text-sm hover:bg-map-border transition-colors shadow-xl"
+        className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-white border border-slate-300 rounded-full px-4 py-2 text-slate-800 text-xs font-bold hover:bg-slate-50 transition-colors shadow-lg"
       >
-        <Truck size={14} />
-        Vehicle Tracking
+        <Truck size={15} className="text-gov-600" />
+        <span>Mineral Transit & Fleet Tracking</span>
         {unreadAlertCount > 0 && (
-          <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5">{unreadAlertCount}</span>
+          <span className="bg-red-600 text-white text-[10px] font-bold rounded-full px-2 py-0.5">{unreadAlertCount}</span>
         )}
       </button>
     )
@@ -86,43 +88,53 @@ export default function VehicleTrackingPanel() {
 
   return (
     <div
-      className="absolute bottom-0 left-0 right-0 z-20 bg-map-panel/98 backdrop-blur-md border-t border-map-border shadow-2xl"
+      className="absolute bottom-0 left-0 right-0 z-20 bg-white border-t-2 border-gov-600 shadow-2xl flex flex-col font-sans"
       style={{ height: `${panelHeight}px` }}
     >
       {/* Resize handle */}
       <div
-        className="absolute top-0 left-0 right-0 h-1.5 cursor-ns-resize hover:bg-gov-600/40 transition-colors"
+        className="absolute top-0 left-0 right-0 h-2 cursor-ns-resize hover:bg-gov-600/30 transition-colors z-30"
         onMouseDown={handleResizeStart}
       >
-        <div className="absolute top-0.5 left-1/2 -translate-x-1/2 w-10 h-0.5 bg-map-border rounded-full" />
+        <div className="absolute top-0.5 left-1/2 -translate-x-1/2 w-12 h-1 bg-slate-400 rounded-full" />
       </div>
 
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-map-border">
+      {/* Official Header */}
+      <div className="flex items-center justify-between px-4 py-2 bg-slate-100 border-b border-slate-300">
         <div className="flex items-center gap-3">
-          <Truck size={16} className="text-gov-300" />
-          <span className="text-map-text font-semibold text-sm">Vehicle Tracking — Live</span>
-          <LiveBadge />
+          <div className="w-6 h-6 rounded bg-gov-600 flex items-center justify-center text-white">
+            <Truck size={13} />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-slate-900 font-bold text-xs">
+              DMG Mineral Transit Tracking & GPS Surveillance
+            </span>
+            <LiveBadge />
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-map-muted text-xs">
-            {onlineCount}/{vehicles.length} online
-          </span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 bg-white px-2.5 py-0.5 rounded border border-slate-300">
+            <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+            <span>{onlineCount} Online</span>
+            <span className="text-slate-400">/</span>
+            <span>{vehicles.length} Total Vehicles</span>
+          </div>
           <button
             onClick={() => setVehicleTrackingPanelOpen(false)}
-            className="text-map-muted hover:text-map-text p-1 rounded hover:bg-map-border transition-colors"
+            className="text-slate-500 hover:text-slate-800 p-1 rounded hover:bg-slate-200 transition-colors"
+            title="Minimize Panel"
           >
-            <ChevronDown size={15} />
+            <ChevronDown size={16} />
           </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-map-border">
-        <TabBtn label="Vehicles" active={activeTab === 'vehicles'} onClick={() => setActiveTab('vehicles')} />
+      <div className="flex border-b border-slate-300 bg-slate-50">
+        <TabBtn label="Active Transport Fleet" active={activeTab === 'vehicles'} onClick={() => setActiveTab('vehicles')} />
         <TabBtn
-          label={`Alerts${alertCount > 0 ? ` (${alertCount})` : ''}`}
+          label={`Enforcement & Transit Alerts${alertCount > 0 ? ` (${alertCount})` : ''}`}
           active={activeTab === 'alerts'}
           onClick={() => { setActiveTab('alerts'); markAlertsRead() }}
           highlight={unreadAlertCount > 0}
@@ -130,13 +142,13 @@ export default function VehicleTrackingPanel() {
       </div>
 
       {/* Body */}
-      <div className="flex h-[calc(100%-88px)]">
+      <div className="flex flex-1 min-h-0 bg-white">
         {activeTab === 'vehicles' && (
           <>
             {/* Vehicle list */}
-            <div className="w-72 border-r border-map-border flex flex-col flex-shrink-0">
+            <div className="w-80 border-r border-slate-300 flex flex-col flex-shrink-0 bg-slate-50/50">
               {/* Filter pills */}
-              <div className="flex gap-1 p-2 border-b border-map-border">
+              <div className="flex gap-1.5 p-2 border-b border-slate-200 bg-white">
                 {([
                   { v: 'all',    label: `All (${vehicles.length})` },
                   { v: 'online', label: `Online (${onlineCount})` },
@@ -146,10 +158,10 @@ export default function VehicleTrackingPanel() {
                     key={v}
                     onClick={() => setFilter(v)}
                     className={clsx(
-                      'px-2 py-1 rounded text-xs font-medium transition-colors',
+                      'px-2.5 py-1 rounded text-xs font-semibold transition-colors border',
                       filter === v
-                        ? 'bg-gov-600 text-white'
-                        : 'text-map-muted hover:text-map-text hover:bg-map-border'
+                        ? 'bg-gov-600 text-white border-gov-700'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
                     )}
                   >
                     {label}
@@ -158,11 +170,11 @@ export default function VehicleTrackingPanel() {
               </div>
 
               {/* List */}
-              <div className="flex-1 overflow-y-auto custom-scrollbar">
+              <div className="flex-1 overflow-y-auto custom-scrollbar divide-y divide-slate-200">
                 {isLoading ? (
                   <div className="p-3 space-y-2">
                     {[...Array(4)].map((_, i) => (
-                      <div key={i} className="h-14 bg-map-border/50 animate-pulse rounded" />
+                      <div key={i} className="h-14 bg-slate-200 animate-pulse rounded" />
                     ))}
                   </div>
                 ) : (
@@ -180,20 +192,22 @@ export default function VehicleTrackingPanel() {
             </div>
 
             {/* Vehicle detail */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
               {selectedVehicleId ? (
                 <VehicleDetail
                   vehicleId={selectedVehicleId}
                   vehicles={vehicles}
+                  onOpenVideo={(v) => setVideoVehicle(v)}
                   recentAlerts={vehicleAlerts.filter(
                     (a) => a.vehicle_number === vehicles.find((v) => v.id === selectedVehicleId)?.vehicle_number
                   ).slice(0, 5)}
                 />
               ) : (
-                <div className="h-full flex items-center justify-center text-map-muted text-xs">
-                  <div className="text-center">
-                    <Truck size={24} className="mx-auto mb-2 opacity-30" />
-                    Select a vehicle to view details
+                <div className="h-full flex items-center justify-center text-slate-500 text-xs">
+                  <div className="text-center p-6">
+                    <Truck size={32} className="mx-auto mb-2 text-slate-400" />
+                    <p className="font-semibold text-slate-700">Select a transit vehicle from the list</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">View real-time telemetry, driver credentials, and geofence status</p>
                   </div>
                 </div>
               )}
@@ -202,11 +216,18 @@ export default function VehicleTrackingPanel() {
         )}
 
         {activeTab === 'alerts' && (
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
             <AlertsFeed alerts={vehicleAlerts} />
           </div>
         )}
       </div>
+
+      {/* Live Video Streaming Modal */}
+      <NetradyneVideoModal
+        vehicle={videoVehicle}
+        isOpen={Boolean(videoVehicle)}
+        onClose={() => setVideoVehicle(null)}
+      />
     </div>
   )
 }
@@ -215,12 +236,12 @@ export default function VehicleTrackingPanel() {
 
 function LiveBadge() {
   return (
-    <div className="flex items-center gap-1.5 bg-green-900/30 border border-green-700/40 rounded-full px-2 py-0.5">
+    <div className="flex items-center gap-1.5 bg-emerald-100 border border-emerald-300 rounded px-2 py-0.5">
       <span className="relative flex h-2 w-2">
-        <span className="animate-ping-slow absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+        <span className="animate-ping-slow absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600" />
       </span>
-      <span className="text-green-400 text-xs font-medium">LIVE</span>
+      <span className="text-emerald-800 text-[10px] font-bold uppercase tracking-wider">LIVE TELEMETRY</span>
     </div>
   )
 }
@@ -232,13 +253,15 @@ function TabBtn({ label, active, onClick, highlight }: {
     <button
       onClick={onClick}
       className={clsx(
-        'flex-1 py-2 text-xs font-medium transition-colors relative',
-        active ? 'text-gov-400 border-b-2 border-gov-400' : 'text-map-muted hover:text-map-text'
+        'px-4 py-2 text-xs font-bold transition-colors relative border-b-2',
+        active 
+          ? 'text-gov-600 border-gov-600 bg-white' 
+          : 'text-slate-600 border-transparent hover:text-slate-900 hover:bg-slate-100'
       )}
     >
       {label}
       {highlight && !active && (
-        <span className="absolute top-1 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+        <span className="absolute top-2 right-2 w-2 h-2 bg-red-600 rounded-full animate-pulse" />
       )}
     </button>
   )
@@ -248,41 +271,41 @@ function VehicleRow({ vehicle, isSelected, hasAlert, onClick }: {
   vehicle: Vehicle; isSelected: boolean; hasAlert: boolean; onClick: () => void
 }) {
   const dotColor = hasAlert
-    ? 'bg-red-500'
+    ? 'bg-red-600 ring-2 ring-red-200'
     : !vehicle.is_online
-    ? 'bg-gray-500'
+    ? 'bg-slate-400'
     : vehicle.current_speed_kmh > 0
-    ? 'bg-green-500'
-    : 'bg-blue-500'
+    ? 'bg-emerald-600 ring-2 ring-emerald-200'
+    : 'bg-blue-600 ring-2 ring-blue-200'
 
   return (
     <button
       onClick={onClick}
       className={clsx(
-        'w-full text-left px-3 py-2.5 border-b border-map-border/50 transition-colors hover:bg-map-border/30',
-        isSelected && 'bg-gov-600/20 border-l-2 border-l-gov-400'
+        'w-full text-left px-3 py-2.5 transition-colors hover:bg-slate-100/80',
+        isSelected && 'bg-blue-50/80 border-l-4 border-l-gov-600'
       )}
     >
-      <div className="flex items-start gap-2">
-        <span className={clsx('w-2 h-2 rounded-full mt-1.5 flex-shrink-0', dotColor)} />
+      <div className="flex items-start gap-2.5">
+        <span className={clsx('w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0', dotColor)} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between">
-            <span className="text-map-text text-xs font-semibold">
+            <span className="font-mono text-xs font-bold bg-amber-50 border border-amber-300 px-1.5 py-0.5 rounded text-slate-900">
               {vehicle.vehicle_number}
             </span>
             {vehicle.is_online && (
-              <span className="text-green-400 text-xs font-mono">
+              <span className="text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded text-[11px] font-mono font-bold">
                 {Math.round(vehicle.current_speed_kmh)} km/h
               </span>
             )}
           </div>
-          <div className="text-map-muted text-xs truncate">{vehicle.driver_name}</div>
-          <div className="text-map-muted text-xs">{vehicle.vehicle_type_display} · {vehicle.assigned_district}</div>
+          <div className="text-slate-800 text-xs font-semibold truncate mt-1">{vehicle.driver_name}</div>
+          <div className="text-slate-500 text-[11px]">{vehicle.vehicle_type_display} · {vehicle.assigned_district}</div>
           {vehicle.current_lease_name && (
-            <div className="text-gov-300 text-xs truncate mt-0.5">📍 {vehicle.current_lease_name}</div>
+            <div className="text-gov-600 text-[11px] truncate mt-0.5 font-medium">📍 {vehicle.current_lease_name}</div>
           )}
           {vehicle.last_seen && (
-            <div className="text-map-muted text-xs mt-0.5">
+            <div className="text-slate-400 text-[10px] mt-0.5">
               {formatDistanceToNow(new Date(vehicle.last_seen), { addSuffix: true })}
             </div>
           )}
@@ -292,73 +315,111 @@ function VehicleRow({ vehicle, isSelected, hasAlert, onClick }: {
   )
 }
 
-function VehicleDetail({ vehicleId, vehicles, recentAlerts }: {
-  vehicleId: number; vehicles: Vehicle[]; recentAlerts: VehicleAlert[]
+function VehicleDetail({ vehicleId, vehicles, recentAlerts, onOpenVideo }: {
+  vehicleId: number; vehicles: Vehicle[]; recentAlerts: VehicleAlert[]; onOpenVideo?: (v: Vehicle) => void
 }) {
   const vehicle = vehicles.find((v) => v.id === vehicleId)
   if (!vehicle) return null
 
   return (
-    <div className="p-4 space-y-3">
+    <div className="p-4 space-y-4">
       {/* Status header */}
-      <div className="flex items-center gap-2">
-        {vehicle.is_online
-          ? <Wifi size={14} className="text-green-400" />
-          : <WifiOff size={14} className="text-gray-400" />}
-        <span className={clsx('text-xs font-semibold', vehicle.is_online ? 'text-green-400' : 'text-gray-400')}>
-          {vehicle.is_online ? 'Online' : 'Offline'}
-        </span>
-        <span className="text-map-muted text-xs">· {vehicle.vehicle_type_display}</span>
-      </div>
-
-      {/* Current status */}
-      <div className="grid grid-cols-2 gap-2">
-        <StatCard icon={Navigation} label="Speed" value={`${Math.round(vehicle.current_speed_kmh)} km/h`} />
-        <StatCard icon={Navigation} label="Heading" value={`${Math.round(vehicle.current_heading)}°`} />
-        {vehicle.last_lat && vehicle.last_lon && (
-          <>
-            <StatCard icon={MapPin} label="Latitude" value={vehicle.last_lat.toFixed(5)} mono />
-            <StatCard icon={MapPin} label="Longitude" value={vehicle.last_lon.toFixed(5)} mono />
-          </>
-        )}
-      </div>
-
-      {/* Driver info */}
-      <div className="bg-map-bg/50 rounded-lg p-3 space-y-1.5">
-        <p className="text-map-muted text-xs font-semibold uppercase tracking-wider mb-2">Driver</p>
-        <InfoRow label="Name" value={vehicle.driver_name} />
-        <InfoRow label="License" value={vehicle.driver_license ?? '—'} />
-        <InfoRow label="District" value={vehicle.assigned_district} />
-        {vehicle.assigned_officer_name && (
-          <InfoRow label="Officer" value={vehicle.assigned_officer_name} />
-        )}
-      </div>
-
-      {/* Current assignment */}
-      {vehicle.current_lease_name && (
-        <div className="bg-gov-600/10 border border-gov-600/30 rounded-lg p-3">
-          <p className="text-gov-300 text-xs font-semibold mb-1">Current Assignment</p>
-          <p className="text-map-text text-xs">{vehicle.current_lease_name}</p>
-          <p className="text-map-muted text-xs font-mono">{vehicle.current_lease_id}</p>
+      <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
+        <div className="flex items-center gap-2">
+          {vehicle.is_online
+            ? <Wifi size={16} className="text-emerald-600" />
+            : <WifiOff size={16} className="text-slate-400" />}
+          <span className={clsx('text-xs font-bold uppercase tracking-wider', vehicle.is_online ? 'text-emerald-700' : 'text-slate-600')}>
+            {vehicle.is_online ? 'Online & Active' : 'Offline'}
+          </span>
+          <span className="text-slate-400 text-xs">·</span>
+          <span className="text-slate-700 text-xs font-medium">{vehicle.vehicle_type_display}</span>
         </div>
+        <span className="font-mono text-xs font-bold bg-amber-100 border border-amber-300 px-2 py-0.5 rounded text-slate-900">
+          {vehicle.vehicle_number}
+        </span>
+      </div>
+
+      {/* Live Stream Camera Launcher Button */}
+      {onOpenVideo && (
+        <button
+          onClick={() => onOpenVideo(vehicle)}
+          className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-emerald-400 border border-emerald-500/40 font-bold py-2.5 px-3 rounded-lg text-xs transition-all shadow-xs group cursor-pointer"
+        >
+          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <Video size={16} className="text-emerald-400 group-hover:scale-110 transition-transform" />
+          <span>View Live Camera Stream (Front Road &amp; Driver Cabin)</span>
+        </button>
       )}
+
+      {/* Telemetry metrics */}
+      <div className="grid grid-cols-4 gap-2">
+        <StatCard icon={Navigation} label="Current Speed" value={`${Math.round(vehicle.current_speed_kmh)} km/h`} />
+        <StatCard icon={Navigation} label="Compass Heading" value={`${Math.round(vehicle.current_heading)}°`} />
+        <StatCard icon={MapPin} label="GPS Latitude" value={vehicle.last_lat ? vehicle.last_lat.toFixed(5) : '—'} mono />
+        <StatCard icon={MapPin} label="GPS Longitude" value={vehicle.last_lon ? vehicle.last_lon.toFixed(5) : '—'} mono />
+      </div>
+
+      {/* Driver info & Transit details */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-slate-50 border border-slate-200 rounded p-3 space-y-1.5">
+          <p className="text-slate-800 text-xs font-bold uppercase tracking-wider border-b border-slate-200 pb-1">
+            Driver Details
+          </p>
+          <InfoRow label="Driver Name" value={vehicle.driver_name} />
+          <InfoRow label="Driving License" value={vehicle.driver_license ?? '—'} />
+          <InfoRow label="District" value={vehicle.assigned_district} />
+          {vehicle.odometer !== undefined && (
+            <InfoRow label="Odometer" value={`${vehicle.odometer.toLocaleString('en-IN')} km`} />
+          )}
+          {vehicle.chassis_number && (
+            <InfoRow label="Chassis Number" value={vehicle.chassis_number} />
+          )}
+          {vehicle.netradyne_device_id && (
+            <InfoRow label="Device ID" value={vehicle.netradyne_device_id} />
+          )}
+          {vehicle.assigned_officer_name && (
+            <InfoRow label="Monitoring Officer" value={vehicle.assigned_officer_name} />
+          )}
+        </div>
+
+        <div className="bg-slate-50 border border-slate-200 rounded p-3 space-y-1.5">
+          <p className="text-slate-800 text-xs font-bold uppercase tracking-wider border-b border-slate-200 pb-1">
+            Transit Pass & Mineral Destination
+          </p>
+          {vehicle.current_lease_name ? (
+            <>
+              <InfoRow label="Assigned Quarry" value={vehicle.current_lease_name} />
+              <InfoRow label="Lease Order No." value={vehicle.current_lease_id ?? '—'} />
+              <div className="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded text-[11px] text-emerald-800 font-medium">
+                ✓ Active Transit e-Permit authorized for transport corridor.
+              </div>
+            </>
+          ) : (
+            <p className="text-slate-500 text-xs py-2">No active quarry transit assignment attached.</p>
+          )}
+        </div>
+      </div>
 
       {/* Recent alerts */}
       {recentAlerts.length > 0 && (
-        <div>
-          <p className="text-map-muted text-xs font-semibold uppercase tracking-wider mb-2">Recent Alerts</p>
+        <div className="space-y-1.5">
+          <p className="text-slate-800 text-xs font-bold uppercase tracking-wider">
+            Enforcement Audit & Geofence Logs
+          </p>
           <div className="space-y-1.5">
             {recentAlerts.map((alert) => (
               <div key={alert.id} className={clsx(
-                'flex items-start gap-2 text-xs rounded p-2',
-                alert.severity === 'HIGH'   ? 'bg-red-900/20 border border-red-700/30' :
-                alert.severity === 'MEDIUM' ? 'bg-yellow-900/20 border border-yellow-700/30' :
-                                              'bg-map-bg/50'
+                'flex items-start gap-2.5 text-xs rounded p-2.5 border',
+                alert.severity === 'HIGH'   ? 'bg-red-50 border-red-300 text-red-900' :
+                alert.severity === 'MEDIUM' ? 'bg-amber-50 border-amber-300 text-amber-900' :
+                                              'bg-slate-50 border-slate-200 text-slate-800'
               )}>
-                <span>{alert.severity === 'HIGH' ? '🔴' : alert.severity === 'MEDIUM' ? '🟡' : '🟢'}</span>
-                <div>
-                  <div className="text-map-text font-medium">{alert.alert_type_display}</div>
-                  <div className="text-map-muted">{formatDistanceToNow(new Date(alert.timestamp), { addSuffix: true })}</div>
+                <span className="font-bold">{alert.severity === 'HIGH' ? '⚠️' : 'ℹ️'}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold">{alert.alert_type_display}</div>
+                  <div className="text-[11px] text-slate-600">{alert.description}</div>
+                  <div className="text-[10px] text-slate-500 mt-1">{formatDistanceToNow(new Date(alert.timestamp), { addSuffix: true })}</div>
                 </div>
               </div>
             ))}
@@ -370,47 +431,75 @@ function VehicleDetail({ vehicleId, vehicles, recentAlerts }: {
 }
 
 function AlertsFeed({ alerts }: { alerts: VehicleAlert[] }) {
+  const setMapFlyToTarget = useMapStore((s) => s.setMapFlyToTarget)
+  const selectVehicle = useMapStore((s) => s.selectVehicle)
+  const vehicles = useMapStore((s) => s.vehicles)
+
   if (alerts.length === 0) {
     return (
-      <div className="h-full flex items-center justify-center text-map-muted text-xs">
-        <div className="text-center">
-          <CheckCircle size={24} className="mx-auto mb-2 text-green-500 opacity-50" />
-          No recent alerts
+      <div className="h-full flex items-center justify-center text-slate-500 text-xs">
+        <div className="text-center p-6">
+          <CheckCircle size={28} className="mx-auto mb-2 text-emerald-600" />
+          <p className="font-semibold text-slate-800">No Statutory Transit Violations</p>
+          <p className="text-[11px] text-slate-500 mt-0.5">All monitored mining transport vehicles are compliant.</p>
         </div>
       </div>
     )
   }
 
+  const handleAlertClick = (alert: VehicleAlert) => {
+    if (alert.alert_lon && alert.alert_lat) {
+      setMapFlyToTarget({ lon: alert.alert_lon, lat: alert.alert_lat, zoom: 16, ping: true })
+    }
+    const matched = vehicles.find((v) => v.vehicle_number === alert.vehicle_number)
+    if (matched) {
+      selectVehicle(matched.id)
+    }
+  }
+
   return (
-    <div className="divide-y divide-map-border/50">
+    <div className="divide-y divide-slate-200">
       {alerts.map((alert) => (
-        <div key={alert.id} className={clsx(
-          'p-3 flex gap-3',
-          alert.severity === 'HIGH' && !alert.is_resolved ? 'bg-red-900/10' : ''
-        )}>
+        <div
+          key={alert.id}
+          onClick={() => handleAlertClick(alert)}
+          className={clsx(
+            'p-3 flex gap-3 transition-colors cursor-pointer group',
+            alert.severity === 'HIGH' && !alert.is_resolved ? 'bg-red-50/70 hover:bg-red-100/70' : 'hover:bg-slate-50'
+          )}
+          title="Click to zoom directly to this incident location on map"
+        >
           <div className="flex-shrink-0 text-base">
             {alert.severity === 'HIGH' ? '🔴' : alert.severity === 'MEDIUM' ? '🟡' : '🟢'}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
-              <span className="text-map-text text-xs font-semibold">{alert.vehicle_number}</span>
-              <span className="text-map-muted text-xs flex-shrink-0">
+              <span className="font-mono text-xs font-bold bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded text-slate-900 group-hover:bg-amber-200">
+                {alert.vehicle_number}
+              </span>
+              <span className="text-slate-500 text-[11px] flex-shrink-0">
                 {formatDistanceToNow(new Date(alert.timestamp), { addSuffix: true })}
               </span>
             </div>
             <div className={clsx(
-              'text-xs font-bold mt-0.5',
-              alert.severity === 'HIGH' ? 'text-red-400' :
-              alert.severity === 'MEDIUM' ? 'text-yellow-400' : 'text-green-400'
+              'text-xs font-bold mt-1 flex items-center justify-between',
+              alert.severity === 'HIGH' ? 'text-red-700' :
+              alert.severity === 'MEDIUM' ? 'text-amber-800' : 'text-emerald-700'
             )}>
-              {alert.alert_type_display}
+              <span>{alert.alert_type_display}</span>
+              <span className="text-[10px] text-gov-600 font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
+                Zoom on Map →
+              </span>
             </div>
-            <div className="text-map-muted text-xs mt-0.5 leading-relaxed">{alert.description}</div>
+            <div className="text-slate-700 text-xs mt-0.5 leading-relaxed">{alert.description}</div>
             {alert.mine_name && (
-              <div className="text-gov-300 text-xs mt-0.5 font-mono">{alert.lease_id} — {alert.mine_name}</div>
+              <div className="text-gov-600 text-xs mt-0.5 font-medium">{alert.lease_id} — {alert.mine_name}</div>
             )}
             {alert.is_resolved && (
-              <div className="text-green-500 text-xs mt-1">✓ Resolved by {alert.resolved_by_name}</div>
+              <div className="text-emerald-700 text-xs font-semibold mt-1 flex items-center gap-1">
+                <CheckCircle size={12} />
+                Resolved by {alert.resolved_by_name}
+              </div>
             )}
           </div>
         </div>
@@ -423,18 +512,18 @@ function StatCard({ icon: Icon, label, value, mono }: {
   icon: React.ElementType; label: string; value: string; mono?: boolean
 }) {
   return (
-    <div className="bg-map-bg/50 rounded p-2">
-      <div className="text-map-muted text-xs mb-0.5">{label}</div>
-      <div className={clsx('text-map-text text-xs font-semibold', mono && 'font-mono')}>{value}</div>
+    <div className="bg-slate-50 border border-slate-200 rounded p-2">
+      <div className="text-slate-500 text-[10px] font-semibold uppercase">{label}</div>
+      <div className={clsx('text-slate-900 text-xs font-bold mt-0.5', mono && 'font-mono')}>{value}</div>
     </div>
   )
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between">
-      <span className="text-map-muted text-xs">{label}</span>
-      <span className="text-map-text text-xs">{value}</span>
+    <div className="flex items-center justify-between text-xs py-0.5">
+      <span className="text-slate-600">{label}:</span>
+      <span className="text-slate-900 font-semibold">{value}</span>
     </div>
   )
 }
