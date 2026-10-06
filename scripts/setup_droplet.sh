@@ -119,6 +119,18 @@ if [ ! -f ".env" ]; then
     echo "  GeoServer Password:  ${GS_PASSWORD}"
 else
     echo -e "${GREEN}✔ .env already exists${NC}"
+    DOMAIN=$(grep "^DOMAIN=" .env | cut -d= -f2 || echo "miningts.segoauto.com")
+fi
+
+# Ensure placeholder SSL cert exists so Nginx container boots without error
+if [ ! -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]; then
+    info "Creating placeholder SSL certificate for ${DOMAIN}..."
+    mkdir -p "/etc/letsencrypt/live/${DOMAIN}"
+    openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
+        -keyout "/etc/letsencrypt/live/${DOMAIN}/privkey.pem" \
+        -out "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" \
+        -subj "/CN=localhost"
+    cp "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" "/etc/letsencrypt/live/${DOMAIN}/chain.pem"
 fi
 
 # ── 8. Start Application ─────────────────────────────────────

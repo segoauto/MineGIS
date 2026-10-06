@@ -25,14 +25,18 @@ apt-get install -y certbot
 info "Stopping nginx to obtain certificate..."
 docker stop minegis_nginx 2>/dev/null || true
 
+DOMAINS_ARG="-d ${DOMAIN}"
+if getent hosts "www.${DOMAIN}" >/dev/null 2>&1 || host "www.${DOMAIN}" >/dev/null 2>&1; then
+    DOMAINS_ARG="${DOMAINS_ARG} -d www.${DOMAIN}"
+fi
+
 info "Requesting Let's Encrypt certificate for ${DOMAIN}..."
 certbot certonly \
     --standalone \
     --agree-tos \
     --non-interactive \
     --email "${SSL_EMAIL}" \
-    -d "${DOMAIN}" \
-    -d "www.${DOMAIN}"
+    ${DOMAINS_ARG}
 
 # Restart nginx with SSL
 info "Restarting nginx with SSL..."
