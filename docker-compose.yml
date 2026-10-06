@@ -5,6 +5,7 @@ services:
   # MinIO (AWS S3-Compatible Object Storage)
   # ─────────────────────────────────────────────
   minio:
+    profiles: ["minio"]
     image: minio/minio:latest
     container_name: minegis_minio
     environment:
