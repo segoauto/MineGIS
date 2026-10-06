@@ -33,6 +33,8 @@ interface MapStore {
   center: [number, number]
   cursorCoords: [number, number] | null
   temporalDate: string
+  mapMode: '2D' | '3D'
+  setMapMode: (mode: '2D' | '3D') => void
 
   // ─── Layer control ────────────────────────────────────────
   layers: LayerConfig[]
@@ -372,6 +374,7 @@ export const useMapStore = create<MapStore>()(
       center: [78.9, 17.6],
       cursorCoords: null,
       temporalDate: '2024-04-01',
+      mapMode: '2D',
 
       layers: DEFAULT_LAYERS,
       layerVisibility: Object.fromEntries(DEFAULT_LAYERS.map((l) => [l.id, l.visible])),
@@ -420,6 +423,7 @@ export const useMapStore = create<MapStore>()(
 
       // ─── Actions ──────────────────────────────────────────
       setBaseLayer: (layer) => set({ baseLayer: layer }),
+      setMapMode: (mapMode) => set({ mapMode }),
       setZoom: (zoom) => set({ zoom }),
       setCenter: (center) => set({ center }),
       setCursorCoords: (cursorCoords) => set({ cursorCoords }),

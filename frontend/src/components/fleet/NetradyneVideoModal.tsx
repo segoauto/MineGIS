@@ -88,7 +88,7 @@ export default function NetradyneVideoModal({
     let pollCount = 0
     const maxPolls = 6
 
-    const fallbackStreamUrl = '/videos/dashcam_road.mp4'
+    const fallbackStreamUrl = '/videos/quarry_haul.mp4'
 
     const attemptFetchStream = () => {
       if (!active) return
@@ -611,7 +611,7 @@ export default function NetradyneVideoModal({
             </button>
             <button
               onClick={() => {
-                setStreamUrl('/videos/dashcam_road.mp4')
+                setStreamUrl('/videos/quarry_haul.mp4')
                 setIsConnecting(false)
               }}
               className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded text-xs font-bold cursor-pointer whitespace-nowrap"

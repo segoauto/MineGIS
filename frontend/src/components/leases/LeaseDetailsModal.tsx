@@ -2,13 +2,13 @@ import React, { useState } from 'react'
 import {
   X, MapPin, FileText, CheckCircle2, AlertTriangle, Calendar,
   IndianRupee, Download, Printer, ShieldCheck, Building2, User,
-  Mail, Phone, ExternalLink, Map, Award, Check
+  Mail, Phone, ExternalLink, Map, Award, Check, Box
 } from 'lucide-react'
 import clsx from 'clsx'
 import toast from 'react-hot-toast'
 import type { MiningLease } from '../../types'
 import { leasesApi } from '../../api/leases'
-import { useAuthStore } from '../../store'
+import { useAuthStore, useMapStore } from '../../store'
 import { getRolePermissions } from '../../utils/rbac'
 
 interface LeaseDetailsModalProps {
@@ -341,16 +341,31 @@ export default function LeaseDetailsModal({
 
         {/* ── Modal Footer Actions ── */}
         <div className="px-5 py-3.5 bg-white border-t border-slate-300 flex items-center justify-between flex-wrap gap-2 text-xs">
-          <button
-            onClick={() => {
-              onInspectOnMap(currentLease)
-              onClose()
-            }}
-            className="px-4 py-2 bg-gov-600 hover:bg-gov-700 text-white rounded-lg font-bold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Map size={14} />
-            <span>Locate &amp; Highlight on Map</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                onInspectOnMap(currentLease)
+                useMapStore.getState().setMapMode('2D')
+                onClose()
+              }}
+              className="px-4 py-2 bg-gov-600 hover:bg-gov-700 text-white rounded-lg font-bold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Map size={14} />
+              <span>Locate on 2D Map</span>
+            </button>
+
+            <button
+              onClick={() => {
+                onInspectOnMap(currentLease)
+                useMapStore.getState().setMapMode('3D')
+                onClose()
+              }}
+              className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg font-bold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Box size={14} />
+              <span>Inspect 3D Terrain</span>
+            </button>
+          </div>
 
           <div className="flex items-center gap-2">
             {!showCertificate && (

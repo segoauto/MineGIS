@@ -252,15 +252,6 @@ export default function TopBar() {
             <span className="hidden xl:inline">Compare Images</span>
           </button>
 
-          {/* Demo Tour Button */}
-          <button
-            onClick={() => setTenderDemoModalOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-amber-400 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold transition-colors shadow-2xs cursor-pointer"
-            title="Open Sample Lease Walkthrough"
-          >
-            <Sparkles size={13} className="text-amber-600" />
-            <span className="hidden sm:inline">Demo Tour</span>
-          </button>
 
           {/* Reset Demo Data Button */}
           <button

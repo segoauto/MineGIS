@@ -899,10 +899,6 @@ export function useMap(containerRef: React.RefObject<HTMLDivElement>) {
         }),
         new Attribution({ collapsible: true }),
         new FullScreen(),
-        new OverviewMap({
-          collapsed: true,
-          layers: [new TileLayer({ source: new OSM() })],
-        }),
       ],
     })
 

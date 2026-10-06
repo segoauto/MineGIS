@@ -2,11 +2,12 @@ import { useState } from 'react'
 import {
   LayoutDashboard, Map, FileText, Truck, ShieldAlert,
   AlertTriangle, FileBarChart2, ShieldCheck, ChevronLeft, ChevronRight,
-  HelpCircle, MapPin, Lock, Scale
+  HelpCircle, MapPin, Lock, Scale, MessageSquareWarning, Users
 } from 'lucide-react'
 import clsx from 'clsx'
+import toast from 'react-hot-toast'
 import { useAuthStore, useMapStore } from '../../store'
-import { getUserJurisdiction } from '../../utils/districts'
+import { getUserJurisdiction, TELANGANA_DISTRICTS } from '../../utils/districts'
 import { getRolePermissions } from '../../utils/rbac'
 
 export type PortalTab =
@@ -17,6 +18,8 @@ export type PortalTab =
   | 'weighbridge'
   | 'geofences'
   | 'alerts'
+  | 'complaints'
+  | 'hro'
   | 'reports'
   | 'governance'
 
@@ -34,7 +37,8 @@ export default function Sidebar({
   onToggleCollapse,
 }: SidebarProps) {
   const { user } = useAuthStore()
-  const { unreadAlertCount, vehicleAlerts } = useMapStore()
+  const { unreadAlertCount, vehicleAlerts, setMapFlyToTarget } = useMapStore()
+  const [selectedDistrict, setSelectedDistrict] = useState('STATEWIDE')
 
   const role = user?.profile?.role
   const perms = getRolePermissions(role)
@@ -83,6 +87,18 @@ export default function Sidebar({
       icon: AlertTriangle,
       badge: activeAlertCount > 0 ? activeAlertCount : undefined,
       badgeColor: 'bg-red-100 text-red-800 border-red-300',
+    },
+    {
+      id: 'complaints',
+      label: 'Public Complaints',
+      icon: MessageSquareWarning,
+      badge: 'PGRS',
+      badgeColor: 'bg-amber-100 text-amber-800 border-amber-300',
+    },
+    {
+      id: 'hro',
+      label: 'HRO & Zonal Officers',
+      icon: Users,
     },
     {
       id: 'reports',
@@ -178,7 +194,40 @@ export default function Sidebar({
               <span className="truncate">{jurisdiction.name} District</span>
             </div>
             <div className="text-[10px] text-slate-500 mt-0.5 truncate">
-              {isRestricted ? 'Assigned District' : 'All Districts Access'}
+              {isRestricted ? 'Assigned Jurisdiction' : 'All Districts Access'}
+            </div>
+
+            {/* Deep Zoom District Navigation Dropdown */}
+            <div className="mt-2 pt-2 border-t border-slate-200/80">
+              <label className="text-[10px] font-bold text-slate-700 block mb-1">
+                Select District to Go Deep:
+              </label>
+              <select
+                value={selectedDistrict}
+                onChange={(e) => {
+                  const dName = e.target.value
+                  setSelectedDistrict(dName)
+                  if (dName && TELANGANA_DISTRICTS[dName]) {
+                    const d = TELANGANA_DISTRICTS[dName]
+                    setMapFlyToTarget({ lon: d.center[0], lat: d.center[1], zoom: 11, ping: true })
+                    onSelectTab('map')
+                    toast.success(`Deep Zoom: Navigated to ${dName} District`, {
+                      icon: '📍',
+                      style: { background: '#0F172A', color: '#38BDF8', border: '1px solid #0284C7' }
+                    })
+                  } else if (dName === 'STATEWIDE') {
+                    setMapFlyToTarget({ lon: 78.9, lat: 17.6, zoom: 8.5 })
+                    onSelectTab('map')
+                    toast.success('Viewing Statewide Telangana', { icon: '🗺️' })
+                  }
+                }}
+                className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-[11px] font-semibold text-slate-800 focus:outline-hidden focus:border-gov-500 cursor-pointer shadow-2xs"
+              >
+                <option value="STATEWIDE">Statewide (All 33 Districts)</option>
+                {Object.keys(TELANGANA_DISTRICTS).sort().map((dist) => (
+                  <option key={dist} value={dist}>{dist}</option>
+                ))}
+              </select>
             </div>
           </div>
         )}

@@ -25,16 +25,7 @@ export default function LayerPanel() {
   }
 
   if (!layerPanelOpen) {
-    return (
-      <button
-        onClick={() => setLayerPanelOpen(true)}
-        className="absolute top-4 left-4 z-20 bg-white border border-slate-300 rounded-md p-2 text-slate-700 hover:bg-slate-100 transition-colors shadow-md flex items-center gap-1.5 text-xs font-bold"
-        title="Open Spatial Layer Catalog"
-      >
-        <Layers size={16} className="text-gov-600" />
-        <span>Layers</span>
-      </button>
-    )
+    return null
   }
 
   return (

@@ -364,11 +364,11 @@ function VehicleDetail({ vehicleId, vehicles, recentAlerts, onOpenVideo }: {
         </span>
       </div>
 
-      {/* Netradyne Live IoT Sync Banner */}
+      {/* DMG Fleet IoT Sync Banner */}
       <div className="bg-blue-50/80 border border-blue-200 rounded-lg p-2.5 flex items-center justify-between text-xs text-blue-900">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="font-bold">Netradyne IDMS IoT Cloud Sync (Tenant 38436)</span>
+          <span className="font-bold">DMG Mineral Transit IoT Telematics Cloud</span>
           <span className="text-[10px] text-blue-700 font-mono bg-white px-1.5 py-0.5 rounded border border-blue-200">
             Device: {vehicle.netradyne_device_id || '6603125484'}
           </span>

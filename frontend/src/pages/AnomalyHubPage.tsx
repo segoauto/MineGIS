@@ -486,7 +486,7 @@ export default function AnomalyHubPage({ embed = false }: { embed?: boolean }) {
             </span>
           </div>
           <p className="text-slate-600 text-xs mt-1 max-w-3xl leading-relaxed">
-            Automated statutory compliance desk integrating <strong>Isolation Forest extraction models</strong>, <strong>Sentinel-2 NDVI spectral changes</strong>, and <strong>24/7 Netradyne vehicle geofence boundary radar</strong> across all Telangana mining concessions.
+            Automated statutory compliance desk integrating <strong>Isolation Forest extraction models</strong>, <strong>Sentinel-2 NDVI spectral changes</strong>, and <strong>24/7 Mineral Transit GPS &amp; geofence boundary radar</strong> across all Telangana mining concessions.
           </p>
         </div>
 
@@ -655,7 +655,7 @@ export default function AnomalyHubPage({ embed = false }: { embed?: boolean }) {
               <Radio size={15} className="text-red-600 animate-pulse" />
               Live Geofence Boundary &amp; Vehicle Telemetry Alerts ({filteredVehicleAlerts.length})
             </h2>
-            <span className="text-[11px] text-slate-500 font-medium">Real-Time Netradyne Radar</span>
+            <span className="text-[11px] text-slate-500 font-medium">Real-Time Vehicle Radar</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
@@ -1086,7 +1086,7 @@ export default function AnomalyHubPage({ embed = false }: { embed?: boolean }) {
                     Vehicle Telematics Alert: {selectedVehicleAlert.vehicle_number}
                   </h2>
                   <p className="text-[11px] text-slate-400">
-                    Netradyne Forward ADAS &amp; DMS Geofence Radar Incident
+                    Automated AI Dashcam &amp; DMS Geofence Radar Incident
                   </p>
                 </div>
               </div>

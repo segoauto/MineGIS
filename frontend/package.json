@@ -13,6 +13,7 @@
   "dependencies": {
     "@tanstack/react-query": "^5.29.2",
     "@turf/turf": "^6.5.0",
+    "@types/three": "^0.186.0",
     "axios": "^1.6.8",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
@@ -23,6 +24,7 @@
     "react-dom": "^18.3.1",
     "react-hot-toast": "^2.4.1",
     "react-router-dom": "^6.23.1",
+    "three": "^0.186.1",
     "xlsx": "^0.18.5",
     "zustand": "^4.5.2"
   },
