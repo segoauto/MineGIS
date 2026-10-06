@@ -5,7 +5,8 @@ import {
   Sliders, Bell, Layers, Map as MapIcon, X, Video, Gauge,
   Truck, Key, Settings, Send, User, Check, ExternalLink,
   Flame, Leaf, BarChart2, ShieldCheck, Activity, PenLine,
-  Crosshair, MousePointerClick, RotateCcw, FileText, Info
+  Crosshair, MousePointerClick, RotateCcw, FileText, Info,
+  Pause, Play
 } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuthStore, useMapStore } from '../../store'
@@ -34,7 +35,7 @@ export interface GeofenceZone {
   speedLimitKmh: number
   activeTrucks: number
   violationCount: number
-  status: 'ACTIVE' | 'WARNING' | 'INACTIVE'
+  status: 'ACTIVE' | 'WARNING' | 'INACTIVE' | 'PAUSED'
   alertTriggers: string[]
   coordinatesSummary: string
   color: string
@@ -277,9 +278,28 @@ export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: Geofence
   } = useMapStore()
   const jurisdiction = getUserJurisdiction(user?.profile?.district)
   const isRestricted = jurisdiction.name !== 'Statewide'
+  const STORAGE_KEY = 'minegis_geofences_v2'
 
   const [activeTab, setActiveTab] = useState<ActiveViewTab>('ZONES')
   const [geofences, setGeofences] = useState<GeofenceZone[]>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          if (isRestricted) {
+            const filtered = parsed.filter(
+              (g: GeofenceZone) => g.district.toLowerCase() === jurisdiction.name.toLowerCase()
+            )
+            return filtered.length > 0 ? filtered : parsed
+          }
+          return parsed
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load geofences from storage', e)
+    }
+
     if (isRestricted) {
       return INITIAL_GEOFENCES.filter(
         (g) => g.district.toLowerCase() === jurisdiction.name.toLowerCase()
@@ -287,6 +307,23 @@ export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: Geofence
     }
     return INITIAL_GEOFENCES
   })
+
+  // Sync geofences updates to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(geofences))
+    } catch (e) {
+      console.warn('Failed to persist geofences', e)
+    }
+  }, [geofences])
+
+  // Editing geofence state
+  const [editingZone, setEditingZone] = useState<GeofenceZone | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editType, setEditType] = useState<GeofenceZone['type']>('QUARRY_BOUNDARY')
+  const [editSpeedLimit, setEditSpeedLimit] = useState<number>(40)
+  const [editStatus, setEditStatus] = useState<'ACTIVE' | 'PAUSED'>('ACTIVE')
+  const [editTriggers, setEditTriggers] = useState<string[]>([])
 
   const [liveAlerts, setLiveAlerts] = useState<GeofenceLiveAlert[]>(() => {
     if (isRestricted) {
@@ -748,10 +785,81 @@ export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: Geofence
     setSelectedGeofenceForVideo(zoneName)
   }
 
+  const handleOpenEdit = (zone: GeofenceZone) => {
+    setEditingZone(zone)
+    setEditName(zone.name)
+    setEditType(zone.type)
+    setEditSpeedLimit(zone.speedLimitKmh)
+    setEditStatus((zone.status === 'PAUSED' ? 'PAUSED' : 'ACTIVE') as 'ACTIVE' | 'PAUSED')
+    setEditTriggers([...zone.alertTriggers])
+  }
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingZone) return
+    if (!editName.trim()) {
+      toast.error('Please enter a valid geofence name')
+      return
+    }
+
+    const updatedZone: GeofenceZone = {
+      ...editingZone,
+      name: editName.trim(),
+      type: editType,
+      typeDisplay:
+        editType === 'QUARRY_BOUNDARY'
+          ? 'Quarry Boundary Enclosure'
+          : editType === 'TRANSIT_CORRIDOR'
+          ? 'Designated Mineral Transit Corridor'
+          : editType === 'BUFFER_RESTRICTION'
+          ? 'Prohibited Eco-Buffer'
+          : 'River Sand Reach Boundary',
+      speedLimitKmh: Number(editSpeedLimit),
+      status: editStatus,
+      alertTriggers: editTriggers,
+      color:
+        editType === 'BUFFER_RESTRICTION'
+          ? '#DC2626'
+          : editType === 'TRANSIT_CORRIDOR'
+          ? '#16A34A'
+          : '#0284C7',
+    }
+
+    setGeofences((prev) => prev.map((g) => (g.id === editingZone.id ? updatedZone : g)))
+    setEditingZone(null)
+    toast.success(`Geofence "${updatedZone.name}" updated successfully!`, {
+      icon: '✏️',
+      style: { background: '#064E3B', color: '#ECFDF5' },
+    })
+  }
+
+  const toggleEditTrigger = (trigger: string) => {
+    setEditTriggers((prev) =>
+      prev.includes(trigger) ? prev.filter((t) => t !== trigger) : [...prev, trigger]
+    )
+  }
+
+  const handleToggleStatus = (id: string) => {
+    setGeofences((prev) =>
+      prev.map((g) => {
+        if (g.id === id) {
+          const nextStatus = g.status === 'ACTIVE' ? 'PAUSED' : 'ACTIVE'
+          toast.success(`Geofence "${g.name}" radar tracking is now ${nextStatus}.`, {
+            icon: nextStatus === 'ACTIVE' ? '🛡️' : '⏸️',
+          })
+          return { ...g, status: nextStatus }
+        }
+        return g
+      })
+    )
+  }
+
   const handleDelete = (id: string, name: string) => {
-    if (confirm(`Are you sure you want to deactivate geofence "${name}"?`)) {
+    if (confirm(`Are you sure you want to permanently delete and remove geofence "${name}"?`)) {
       setGeofences((prev) => prev.filter((g) => g.id !== id))
-      toast.success(`Geofence ${id} removed.`)
+      toast.success(`Geofence "${name}" (${id}) removed from system.`, {
+        icon: '🗑️',
+      })
     }
   }
 
@@ -1077,28 +1185,60 @@ export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: Geofence
                         )}
                         <button
                           onClick={() => setInspectingZone(zone)}
-                          className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
+                          className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded font-semibold transition-colors flex items-center gap-1.5 cursor-pointer text-xs"
                           title="Inspect Geofence Boundary Coordinates"
                         >
                           <MapPin size={13} className="text-gov-600" />
-                          <span>{zone.points ? `${zone.points.length} Points` : zone.centerPoint ? 'Center Pt' : 'Coordinates'}</span>
+                          <span>{zone.points ? `${zone.points.length} Pts` : zone.centerPoint ? 'Center Pt' : 'Coordinates'}</span>
                         </button>
                         <button
                           onClick={() => handleOpenVideoForVehicle('TS-07-EA-4122', zone.name)}
-                          className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+                          className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded font-bold transition-colors flex items-center gap-1.5 cursor-pointer text-xs"
+                          title="Live In-Cabin / Road Telematics Stream"
                         >
                           <Video size={13} className="text-emerald-700" />
-                          <span>Live Video</span>
+                          <span>Video</span>
+                        </button>
+                        <button
+                          onClick={() => handleToggleStatus(zone.id)}
+                          className={clsx(
+                            'px-2.5 py-1.5 border rounded font-bold transition-colors flex items-center gap-1.5 cursor-pointer text-xs',
+                            zone.status === 'PAUSED'
+                              ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300'
+                              : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+                          )}
+                          title={zone.status === 'PAUSED' ? 'Resume Radar Telematics Tracking' : 'Pause Radar Tracking'}
+                        >
+                          {zone.status === 'PAUSED' ? (
+                            <>
+                              <Play size={13} className="text-amber-600" />
+                              <span>Resume</span>
+                            </>
+                          ) : (
+                            <>
+                              <Pause size={13} className="text-slate-600" />
+                              <span>Pause</span>
+                            </>
+                          )}
                         </button>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleOpenEdit(zone)}
+                          className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded font-bold transition-colors flex items-center gap-1 cursor-pointer text-xs"
+                          title="Edit Geofence Name, Speed Limit, Status & Triggers"
+                        >
+                          <Edit3 size={13} />
+                          <span>Edit</span>
+                        </button>
                         <button
                           onClick={() => handleDelete(zone.id, zone.name)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                          title="Delete Geofence"
+                          className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded font-bold transition-colors flex items-center gap-1 cursor-pointer text-xs"
+                          title="Permanently Delete and Remove Geofence"
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={13} />
+                          <span>Delete</span>
                         </button>
                       </div>
                     </div>
@@ -1894,6 +2034,171 @@ export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: Geofence
                     className="px-5 py-2 bg-gov-600 hover:bg-gov-700 text-white rounded font-bold shadow-xs transition-colors cursor-pointer"
                   >
                     Activate Geofence
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: EDIT GEOFENCE PARAMETERS ── */}
+      {editingZone && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs font-sans animate-fade-in overflow-y-auto">
+          <div className="bg-white border border-slate-300 w-full max-w-2xl rounded-xl overflow-hidden shadow-2xl flex flex-col my-8">
+            <div className="px-6 py-4 bg-gov-600 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Edit3 size={18} className="text-amber-300" />
+                <div>
+                  <h3 className="font-extrabold text-sm">Edit Geofence Parameters</h3>
+                  <p className="text-[11px] text-gov-100">ID: {editingZone.id} · {editingZone.district} District</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingZone(null)}
+                className="text-white/80 hover:text-white p-1 rounded-md hover:bg-gov-700 transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="p-6 space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  Geofence Name:
+                </label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-gov-600 font-medium"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Geofence Classification:
+                  </label>
+                  <select
+                    value={editType}
+                    onChange={(e) => setEditType(e.target.value as GeofenceZone['type'])}
+                    className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-gov-600 font-medium"
+                  >
+                    <option value="QUARRY_BOUNDARY">Quarry Boundary Enclosure</option>
+                    <option value="TRANSIT_CORRIDOR">Mineral Transit Corridor</option>
+                    <option value="BUFFER_RESTRICTION">Prohibited Eco-Buffer</option>
+                    <option value="SAND_REACH">River Sand Reach Boundary</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Maximum Speed Limit (km/h):
+                  </label>
+                  <input
+                    type="number"
+                    min={10}
+                    max={120}
+                    value={editSpeedLimit}
+                    onChange={(e) => setEditSpeedLimit(Number(e.target.value))}
+                    className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-gov-600 font-medium"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Enforcement Status:
+                  </label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as 'ACTIVE' | 'PAUSED')}
+                    className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-gov-600 font-medium"
+                  >
+                    <option value="ACTIVE">ACTIVE — Enforcing Telematics Breaches</option>
+                    <option value="PAUSED">PAUSED — Suspend Active Tracking</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    District / Mandal (Jurisdiction):
+                  </label>
+                  <div className="bg-slate-100 border border-slate-200 rounded px-3 py-2 text-slate-700 font-semibold">
+                    {editingZone.district} · {editingZone.mandal}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1.5">
+                  Automated Breach Dispatch Triggers:
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                  {[
+                    { id: 'UNAUTHORIZED_ENTRY', label: 'Unauthorized Ingress (Entry)' },
+                    { id: 'UNAUTHORIZED_EXIT', label: 'Unauthorized Mineral Egress (Exit)' },
+                    { id: 'SPEED_VIOLATION', label: 'Speed Limit Breach (> limit)' },
+                    { id: 'NIGHT_MOVEMENT', label: 'Night Movement Breach (10PM-5AM)' },
+                    { id: 'ROUTE_DEVIATION', label: 'Corridor Deviation / Straying' },
+                    { id: 'IDLE_TRANSIT', label: 'Prolonged Stationary Idling (>20m)' },
+                  ].map((trig) => (
+                    <label
+                      key={trig.id}
+                      className="flex items-center gap-2 text-slate-700 cursor-pointer hover:text-slate-900"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={editTriggers.includes(trig.id)}
+                        onChange={() => toggleEditTrigger(trig.id)}
+                        className="rounded text-gov-600 focus:ring-gov-500 h-4 w-4"
+                      />
+                      <span>{trig.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-[11px] text-amber-900 space-y-1">
+                <div className="font-bold flex items-center gap-1.5 text-amber-800">
+                  <ShieldCheck size={14} />
+                  <span>Statutory Spatial Record</span>
+                </div>
+                <div>Geometry: <strong>{editingZone.coordinatesSummary}</strong></div>
+                <div>Active Trucks Inside: <strong>{editingZone.activeTrucks} vehicles</strong></div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleDelete(editingZone.id, editingZone.name)
+                    setEditingZone(null)
+                  }}
+                  className="px-3 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded font-bold flex items-center gap-1.5 cursor-pointer text-xs transition-colors"
+                >
+                  <Trash2 size={13} />
+                  <span>Delete Permanently</span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingZone(null)}
+                    className="px-4 py-2 border border-slate-300 rounded text-slate-700 hover:bg-slate-50 font-semibold cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-gov-600 hover:bg-gov-700 text-white rounded font-bold shadow-xs transition-colors cursor-pointer"
+                  >
+                    Save Changes
                   </button>
                 </div>
               </div>

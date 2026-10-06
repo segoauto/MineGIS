@@ -35,8 +35,7 @@ function VehicleMarker({
   const speed = Math.round(vehicle.current_speed_kmh ?? 0)
   const rot = vehicle.current_heading ?? 0
 
-  // High-visibility color scheme
-  let mainColor = '#10b981' // Vivid Emerald Green (Active Moving)
+  let mainColor = '#10b981'
   let ringColor = 'rgba(16, 185, 129, 0.35)'
   let glowColor = 'rgba(16, 185, 129, 0.65)'
 
@@ -48,12 +47,16 @@ function VehicleMarker({
     mainColor = '#38bdf8' // Electric Sky Blue
     ringColor = 'rgba(56, 189, 248, 0.45)'
     glowColor = 'rgba(56, 189, 248, 0.8)'
-  } else if (!isMoving && vehicle.is_online) {
-    mainColor = '#f59e0b' // High-vis Amber Gold (Idling)
+  } else if (isMoving) {
+    mainColor = '#10b981' // Vivid Emerald Green (Active Moving)
+    ringColor = 'rgba(16, 185, 129, 0.35)'
+    glowColor = 'rgba(16, 185, 129, 0.65)'
+  } else if (vehicle.is_online && vehicle.engine_on) {
+    mainColor = '#f59e0b' // High-vis Amber Gold (Engine On / Idling)
     ringColor = 'rgba(245, 158, 11, 0.35)'
     glowColor = 'rgba(245, 158, 11, 0.6)'
-  } else if (!vehicle.is_online || age === 'offline') {
-    mainColor = '#64748b' // Slate (Offline)
+  } else {
+    mainColor = '#64748b' // Slate (Engine Off / Parked)
     ringColor = 'rgba(100, 116, 139, 0.2)'
     glowColor = 'rgba(100, 116, 139, 0.3)'
   }
@@ -242,7 +245,7 @@ export default function VehicleOverlays({ map }: { map: OlMap }) {
         if (!entry) return null
 
         const hasBreach = vehicleAlerts.some(
-          (a) => a.vehicle_number === v.vehicle_number && !a.is_resolved
+          (a) => a.vehicle_number === v.vehicle_number && !a.is_resolved && a.severity === 'HIGH' && a.alert_type.includes('GEOFENCE')
         )
 
         return createPortal(

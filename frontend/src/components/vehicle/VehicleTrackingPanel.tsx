@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
   Truck, AlertCircle, ChevronDown, ChevronUp,
   MapPin, Navigation, Clock, Wifi, WifiOff,
-  CheckCircle, Eye, Video,
+  CheckCircle, Eye, Video, Zap, Activity, Compass, Shield,
 } from 'lucide-react'
 import { formatDistanceToNow, format } from 'date-fns'
 import { useMapStore } from '../../store'
@@ -270,13 +270,15 @@ function TabBtn({ label, active, onClick, highlight }: {
 function VehicleRow({ vehicle, isSelected, hasAlert, onClick }: {
   vehicle: Vehicle; isSelected: boolean; hasAlert: boolean; onClick: () => void
 }) {
+  const isMoving = vehicle.is_online && vehicle.current_speed_kmh > 0
+  const isIdling = vehicle.is_online && vehicle.engine_on && vehicle.current_speed_kmh === 0
   const dotColor = hasAlert
-    ? 'bg-red-600 ring-2 ring-red-200'
-    : !vehicle.is_online
+    ? 'bg-red-600 ring-2 ring-red-300 animate-pulse'
+    : !vehicle.is_online || !vehicle.engine_on
     ? 'bg-slate-400'
-    : vehicle.current_speed_kmh > 0
+    : isMoving
     ? 'bg-emerald-600 ring-2 ring-emerald-200'
-    : 'bg-blue-600 ring-2 ring-blue-200'
+    : 'bg-amber-500 ring-2 ring-amber-200'
 
   return (
     <button
@@ -293,11 +295,23 @@ function VehicleRow({ vehicle, isSelected, hasAlert, onClick }: {
             <span className="font-mono text-xs font-bold bg-amber-50 border border-amber-300 px-1.5 py-0.5 rounded text-slate-900">
               {vehicle.vehicle_number}
             </span>
-            {vehicle.is_online && (
-              <span className="text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded text-[11px] font-mono font-bold">
-                {Math.round(vehicle.current_speed_kmh)} km/h
+            <div className="flex items-center gap-1.5">
+              <span
+                className={clsx(
+                  'text-[9px] px-1.5 py-0.2 rounded font-bold uppercase border',
+                  vehicle.engine_on
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                    : 'bg-slate-100 text-slate-500 border-slate-200'
+                )}
+              >
+                {vehicle.engine_on ? 'ENG ON' : 'OFF'}
               </span>
-            )}
+              {vehicle.is_online && (
+                <span className="text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded text-[11px] font-mono font-bold">
+                  {Math.round(vehicle.current_speed_kmh)} km/h
+                </span>
+              )}
+            </div>
           </div>
           <div className="text-slate-800 text-xs font-semibold truncate mt-1">{vehicle.driver_name}</div>
           <div className="text-slate-500 text-[11px]">{vehicle.vehicle_type_display} · {vehicle.assigned_district}</div>
@@ -333,10 +347,34 @@ function VehicleDetail({ vehicleId, vehicles, recentAlerts, onOpenVideo }: {
             {vehicle.is_online ? 'Online & Active' : 'Offline'}
           </span>
           <span className="text-slate-400 text-xs">·</span>
-          <span className="text-slate-700 text-xs font-medium">{vehicle.vehicle_type_display}</span>
+          <span
+            className={clsx(
+              'text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider border flex items-center gap-1',
+              vehicle.engine_on
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                : 'bg-slate-100 text-slate-600 border-slate-300'
+            )}
+          >
+            <span className={clsx('w-1.5 h-1.5 rounded-full', vehicle.engine_on ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400')} />
+            Engine: {vehicle.engine_on ? 'ON (Ignition Running)' : 'OFF (Parked)'}
+          </span>
         </div>
         <span className="font-mono text-xs font-bold bg-amber-100 border border-amber-300 px-2 py-0.5 rounded text-slate-900">
           {vehicle.vehicle_number}
+        </span>
+      </div>
+
+      {/* Netradyne Live IoT Sync Banner */}
+      <div className="bg-blue-50/80 border border-blue-200 rounded-lg p-2.5 flex items-center justify-between text-xs text-blue-900">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="font-bold">Netradyne IDMS IoT Cloud Sync (Tenant 38436)</span>
+          <span className="text-[10px] text-blue-700 font-mono bg-white px-1.5 py-0.5 rounded border border-blue-200">
+            Device: {vehicle.netradyne_device_id || '6603125484'}
+          </span>
+        </div>
+        <span className="text-[10px] text-slate-500 font-medium">
+          Ping: {vehicle.last_seen ? formatDistanceToNow(new Date(vehicle.last_seen), { addSuffix: true }) : 'Live'}
         </span>
       </div>
 
@@ -353,9 +391,14 @@ function VehicleDetail({ vehicleId, vehicles, recentAlerts, onOpenVideo }: {
       )}
 
       {/* Telemetry metrics */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+        <StatCard
+          icon={Zap}
+          label="Engine Status"
+          value={vehicle.engine_on ? 'IGNITION ON' : 'IGNITION OFF'}
+        />
         <StatCard icon={Navigation} label="Current Speed" value={`${Math.round(vehicle.current_speed_kmh)} km/h`} />
-        <StatCard icon={Navigation} label="Compass Heading" value={`${Math.round(vehicle.current_heading)}°`} />
+        <StatCard icon={Compass} label="Compass Heading" value={`${Math.round(vehicle.current_heading)}°`} />
         <StatCard icon={MapPin} label="GPS Latitude" value={vehicle.last_lat ? vehicle.last_lat.toFixed(5) : '—'} mono />
         <StatCard icon={MapPin} label="GPS Longitude" value={vehicle.last_lon ? vehicle.last_lon.toFixed(5) : '—'} mono />
       </div>
