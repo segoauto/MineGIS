@@ -9,9 +9,14 @@ import Draw from 'ol/interaction/Draw'
 import VectorLayer from 'ol/layer/Vector'
 import VectorSource from 'ol/source/Vector'
 import GeoJSON from 'ol/format/GeoJSON'
-import { Style, Fill, Stroke, Circle as CircleStyle } from 'ol/style'
-import { toLonLat } from 'ol/proj'
+import Feature from 'ol/Feature'
+import Point from 'ol/geom/Point'
+import CircleGeom from 'ol/geom/Circle'
+import { fromCircle } from 'ol/geom/Polygon'
+import { Style, Fill, Stroke, Circle as CircleStyle, Text } from 'ol/style'
+import { toLonLat, fromLonLat } from 'ol/proj'
 import { getLength, getArea } from 'ol/sphere'
+import { X, MapPin } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function MapView() {
@@ -45,6 +50,13 @@ export default function MapView() {
     zIndex: 210,
   }))
 
+  // High-visibility mine/lease target highlight layer
+  const highlightSourceRef = useRef<VectorSource>(new VectorSource())
+  const highlightLayerRef = useRef<VectorLayer<any>>(new VectorLayer({
+    source: highlightSourceRef.current,
+    zIndex: 250,
+  }))
+
   // Initialize WebSocket (lives at map level to survive tab switches)
   useWebSocket()
 
@@ -53,7 +65,7 @@ export default function MapView() {
     drawBoundaryMode, setDrawBoundaryMode, openLeaseCreateForm,
     setDrawnPointCoords, activeTool, setActiveTool, setMeasurementResult,
     mapFlyToTarget, setMapFlyToTarget, triggerGeofenceBreachDemo,
-    setVehicles,
+    setVehicles, selectLease,
   } = useMapStore()
 
   // Load and ensure vehicles are showcased immediately on map mount
@@ -70,6 +82,7 @@ export default function MapView() {
     if (mapRef.current) {
       mapRef.current.addLayer(drawLayerRef.current)
       mapRef.current.addLayer(measureLayerRef.current)
+      mapRef.current.addLayer(highlightLayerRef.current)
       setMapReady(true)
 
       // GIS-19: Right-click coordinate finder
@@ -291,9 +304,81 @@ export default function MapView() {
       }
     }
   }, [selectedVehicleId, mapReady, clearTripLayer, flyTo, vehicles])
-  // Fly to selected lease
+  // Highlight and focus selected lease on map
   useEffect(() => {
-    if (mapReady && selectedLeaseData?.centroid_lon && selectedLeaseData?.centroid_lat) {
+    if (!mapReady) return
+    highlightSourceRef.current.clear()
+
+    if (selectedLeaseData && selectedLeaseData.centroid_lon && selectedLeaseData.centroid_lat) {
+      const centerCoord = fromLonLat([selectedLeaseData.centroid_lon, selectedLeaseData.centroid_lat])
+
+      // 1. Boundary polygon (either official GeoJSON boundary or derived footprint)
+      if (selectedLeaseData.boundary_geojson) {
+        try {
+          const geojsonFeatures = new GeoJSON().readFeatures(selectedLeaseData.boundary_geojson, {
+            featureProjection: 'EPSG:3857',
+            dataProjection: 'EPSG:4326',
+          })
+          geojsonFeatures.forEach((f) => {
+            f.setStyle(
+              new Style({
+                stroke: new Stroke({ color: '#10B981', width: 3.5, lineDash: [8, 4] }),
+                fill: new Fill({ color: 'rgba(16, 185, 129, 0.22)' }),
+              })
+            )
+          })
+          highlightSourceRef.current.addFeatures(geojsonFeatures)
+        } catch (e) {
+          console.warn('Could not parse lease boundary GeoJSON:', e)
+        }
+      }
+
+      // If no features were added from geojson, create circular perimeter buffer around centroid
+      if (highlightSourceRef.current.getFeatures().length === 0) {
+        const areaHa = Number(selectedLeaseData.area_hectares) || 25
+        const radiusMeters = Math.max(250, Math.min(800, Math.sqrt(areaHa * 10000) / 1.5))
+        const circleGeom = fromCircle(new CircleGeom(centerCoord, radiusMeters))
+        const boundaryFeature = new Feature({ geometry: circleGeom })
+        boundaryFeature.setStyle(
+          new Style({
+            stroke: new Stroke({ color: '#10B981', width: 3.5, lineDash: [8, 4] }),
+            fill: new Fill({ color: 'rgba(16, 185, 129, 0.22)' }),
+          })
+        )
+        highlightSourceRef.current.addFeature(boundaryFeature)
+      }
+
+      // 2. High-visibility beacon marker & label at mine center
+      const markerFeature = new Feature({ geometry: new Point(centerCoord) })
+      markerFeature.setStyle([
+        // Outer glowing pulse ring
+        new Style({
+          image: new CircleStyle({
+            radius: 18,
+            fill: new Fill({ color: 'rgba(16, 185, 129, 0.35)' }),
+            stroke: new Stroke({ color: '#10B981', width: 2.5 }),
+          }),
+        }),
+        // Inner beacon center
+        new Style({
+          image: new CircleStyle({
+            radius: 7,
+            fill: new Fill({ color: '#059669' }),
+            stroke: new Stroke({ color: '#FFFFFF', width: 2.5 }),
+          }),
+          text: new Text({
+            text: `📍 ${selectedLeaseData.mine_name}\n[${selectedLeaseData.lease_id}] · ${selectedLeaseData.status || 'ACTIVE'}`,
+            font: 'bold 12px Inter, sans-serif',
+            fill: new Fill({ color: '#FFFFFF' }),
+            backgroundFill: new Fill({ color: 'rgba(15, 23, 42, 0.92)' }),
+            backgroundStroke: new Stroke({ color: '#10B981', width: 2 }),
+            padding: [6, 10, 6, 10],
+            offsetY: -38,
+          }),
+        }),
+      ])
+      highlightSourceRef.current.addFeature(markerFeature)
+
       flyTo(selectedLeaseData.centroid_lon, selectedLeaseData.centroid_lat, 14)
     }
   }, [selectedLeaseData, mapReady, flyTo])
@@ -308,6 +393,23 @@ export default function MapView() {
 
   return (
     <div className="relative w-full h-full">
+      {/* Target Mine Highlight Active HUD Banner */}
+      {selectedLeaseData && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2.5 bg-slate-900/95 text-white px-4 py-2 rounded-full shadow-2xl border border-emerald-500 backdrop-blur-md animate-fade-in">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+          <span className="text-xs font-semibold">
+            Located Mine: <strong className="text-emerald-300">{selectedLeaseData.mine_name}</strong> ({selectedLeaseData.lease_id})
+          </span>
+          <button
+            onClick={() => selectLease(null as any, null as any)}
+            className="ml-2 text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Clear Mine Highlight"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       {/* OpenLayers map container */}
       <div
         ref={containerRef}

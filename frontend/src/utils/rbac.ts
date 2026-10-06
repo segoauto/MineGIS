@@ -32,7 +32,7 @@ export interface RolePermissions {
 
 const ROLE_PERMISSIONS_MAP: Record<string, RolePermissions> = {
   R01_SUPER_ADMIN: {
-    allowedTabs: ['dashboard', 'map', 'leases', 'fleet', 'geofences', 'alerts', 'reports', 'governance'],
+    allowedTabs: ['dashboard', 'map', 'leases', 'fleet', 'weighbridge', 'geofences', 'alerts', 'reports', 'governance'],
     canCreateLease: true,
     canBulkUpload: true,
     canApproveLease: true,
@@ -44,7 +44,7 @@ const ROLE_PERMISSIONS_MAP: Record<string, RolePermissions> = {
     isReadOnly: false,
   },
   R02_STATE_EXEC: {
-    allowedTabs: ['dashboard', 'map', 'leases', 'fleet', 'geofences', 'alerts', 'reports', 'governance'],
+    allowedTabs: ['dashboard', 'map', 'leases', 'fleet', 'weighbridge', 'geofences', 'alerts', 'reports', 'governance'],
     canCreateLease: false,
     canBulkUpload: false,
     canApproveLease: true,
@@ -56,7 +56,7 @@ const ROLE_PERMISSIONS_MAP: Record<string, RolePermissions> = {
     isReadOnly: false,
   },
   R03_STATE_MGR: {
-    allowedTabs: ['dashboard', 'map', 'leases', 'fleet', 'geofences', 'alerts', 'reports', 'governance'],
+    allowedTabs: ['dashboard', 'map', 'leases', 'fleet', 'weighbridge', 'geofences', 'alerts', 'reports', 'governance'],
     canCreateLease: true,
     canBulkUpload: true,
     canApproveLease: true,
@@ -68,7 +68,7 @@ const ROLE_PERMISSIONS_MAP: Record<string, RolePermissions> = {
     isReadOnly: false,
   },
   R04_DISTRICT_OFFICER: {
-    allowedTabs: ['dashboard', 'map', 'leases', 'fleet', 'geofences', 'alerts', 'reports', 'governance'],
+    allowedTabs: ['dashboard', 'map', 'leases', 'fleet', 'weighbridge', 'geofences', 'alerts', 'reports', 'governance'],
     canCreateLease: true,
     canBulkUpload: true,
     canApproveLease: false,
@@ -80,7 +80,7 @@ const ROLE_PERMISSIONS_MAP: Record<string, RolePermissions> = {
     isReadOnly: false,
   },
   R05_FIELD_OFFICER: {
-    allowedTabs: ['map', 'leases', 'fleet', 'geofences', 'alerts', 'reports'],
+    allowedTabs: ['map', 'leases', 'fleet', 'weighbridge', 'geofences', 'alerts', 'reports'],
     canCreateLease: false,
     canBulkUpload: false,
     canApproveLease: false,
@@ -92,7 +92,7 @@ const ROLE_PERMISSIONS_MAP: Record<string, RolePermissions> = {
     isReadOnly: false,
   },
   R06_DATA_ENTRY: {
-    allowedTabs: ['map', 'leases', 'reports'],
+    allowedTabs: ['map', 'leases', 'weighbridge', 'reports'],
     canCreateLease: true,
     canBulkUpload: true,
     canApproveLease: false,
@@ -104,7 +104,7 @@ const ROLE_PERMISSIONS_MAP: Record<string, RolePermissions> = {
     isReadOnly: false,
   },
   R07_GIS_ANALYST: {
-    allowedTabs: ['dashboard', 'map', 'leases', 'geofences', 'reports'],
+    allowedTabs: ['dashboard', 'map', 'leases', 'weighbridge', 'geofences', 'reports'],
     canCreateLease: false,
     canBulkUpload: true,
     canApproveLease: false,
@@ -116,7 +116,7 @@ const ROLE_PERMISSIONS_MAP: Record<string, RolePermissions> = {
     isReadOnly: false,
   },
   R08_AUDITOR: {
-    allowedTabs: ['dashboard', 'leases', 'alerts', 'reports', 'governance'],
+    allowedTabs: ['dashboard', 'leases', 'weighbridge', 'alerts', 'reports', 'governance'],
     canCreateLease: false,
     canBulkUpload: false,
     canApproveLease: false,
@@ -128,7 +128,7 @@ const ROLE_PERMISSIONS_MAP: Record<string, RolePermissions> = {
     isReadOnly: true,
   },
   R09_LEASEHOLDER: {
-    allowedTabs: ['map', 'fleet', 'geofences', 'alerts', 'reports'],
+    allowedTabs: ['map', 'fleet', 'weighbridge', 'geofences', 'alerts', 'reports'],
     canCreateLease: false,
     canBulkUpload: false,
     canApproveLease: false,
@@ -166,7 +166,7 @@ const ROLE_PERMISSIONS_MAP: Record<string, RolePermissions> = {
 }
 
 const DEFAULT_PERMISSIONS: RolePermissions = {
-  allowedTabs: ['dashboard', 'map', 'leases', 'fleet', 'geofences', 'alerts', 'reports'],
+  allowedTabs: ['dashboard', 'map', 'leases', 'fleet', 'weighbridge', 'geofences', 'alerts', 'reports'],
   canCreateLease: false,
   canBulkUpload: false,
   canApproveLease: false,

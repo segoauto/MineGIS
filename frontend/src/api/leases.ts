@@ -315,6 +315,123 @@ export const MOCK_LEASES: MiningLease[] = [
       ]],
     },
   },
+  {
+    id: 8,
+    lease_id: 'TS-WGL-SAND-105',
+    mine_name: 'Warangal Sub-Basin Sand Reach-4',
+    mineral_type: 'SAND',
+    mineral_display: 'River Sand (Reach-IV)',
+    leaseholder_name: 'Kakatiya Infrastructure & Mining Consortium',
+    leaseholder_pan: 'AAACK4419L',
+    leaseholder_contact: '+91 870-244190',
+    leaseholder_email: 'compliance@kakatiyainfra.com',
+    state: 'Telangana',
+    district: 'Warangal',
+    mandal: 'Geesugonda',
+    village: 'Dharmaram',
+    survey_number: 'Sy. No. 402/P',
+    area_hectares: 22.5,
+    centroid_lon: 79.625,
+    centroid_lat: 17.982,
+    grant_date: '2026-08-01',
+    commencement_date: '2026-10-01',
+    valid_from: '2026-10-01',
+    valid_till: '2031-09-30',
+    status: 'PENDING',
+    status_display: 'Pending Approval (Grant Review)',
+    royalty_due: 480000,
+    last_payment_date: null,
+    days_remaining: 1825,
+    is_expiring_soon: false,
+    boundary_geojson: {
+      type: 'Polygon',
+      coordinates: [[
+        [79.618, 17.976],
+        [79.632, 17.976],
+        [79.632, 17.988],
+        [79.618, 17.988],
+        [79.618, 17.976],
+      ]],
+    },
+  },
+  {
+    id: 9,
+    lease_id: 'TS-MBNR-GRN-092',
+    mine_name: 'Mahabubnagar Black Galaxy Granite Quarry',
+    mineral_type: 'GRANITE',
+    mineral_display: 'Black Granite Concession',
+    leaseholder_name: 'Palamuru Natural Stones & Granites Pvt Ltd',
+    leaseholder_pan: 'AABCP1128M',
+    leaseholder_contact: '+91 8542-228901',
+    leaseholder_email: 'palamuru.granite@gmail.com',
+    state: 'Telangana',
+    district: 'Mahabubnagar',
+    mandal: 'Jadcherla',
+    village: 'Badepalle',
+    survey_number: 'Sy. No. 188/3',
+    area_hectares: 38.0,
+    centroid_lon: 78.145,
+    centroid_lat: 16.762,
+    grant_date: '2026-09-15',
+    commencement_date: '2026-11-01',
+    valid_from: '2026-11-01',
+    valid_till: '2036-10-31',
+    status: 'PENDING',
+    status_display: 'Pending Approval (DMO Field Clearance Passed)',
+    royalty_due: 750000,
+    last_payment_date: null,
+    days_remaining: 3652,
+    is_expiring_soon: false,
+    boundary_geojson: {
+      type: 'Polygon',
+      coordinates: [[
+        [78.138, 16.755],
+        [78.152, 16.755],
+        [78.152, 16.769],
+        [78.138, 16.769],
+        [78.138, 16.755],
+      ]],
+    },
+  },
+  {
+    id: 10,
+    lease_id: 'TS-KNR-QUR-011',
+    mine_name: 'Huzurabad Road Metal & Ballast Concession',
+    mineral_type: 'OTHER',
+    mineral_display: 'Road Metal / Stone Ballast',
+    leaseholder_name: 'Sri Sai Stone Crushers',
+    leaseholder_pan: 'AABCS8801K',
+    leaseholder_contact: '+91 878-228910',
+    leaseholder_email: 'srisaistone@yahoo.in',
+    state: 'Telangana',
+    district: 'Karimnagar',
+    mandal: 'Huzurabad',
+    village: 'Vavilala',
+    survey_number: 'Sy. No. 92/1',
+    area_hectares: 16.4,
+    centroid_lon: 79.388,
+    centroid_lat: 18.192,
+    grant_date: '2014-04-01',
+    commencement_date: '2014-06-01',
+    valid_from: '2014-06-01',
+    valid_till: '2024-05-31',
+    status: 'EXPIRED',
+    status_display: 'Expired (Tenure Concluded)',
+    royalty_due: 0,
+    last_payment_date: '2024-05-20',
+    days_remaining: 0,
+    is_expiring_soon: false,
+    boundary_geojson: {
+      type: 'Polygon',
+      coordinates: [[
+        [79.382, 18.186],
+        [79.394, 18.186],
+        [79.394, 18.198],
+        [79.382, 18.198],
+        [79.382, 18.186],
+      ]],
+    },
+  },
 ]
 
 function getJurisdictionFilteredLeases(): MiningLease[] {
@@ -536,6 +653,26 @@ export const leasesApi = {
     } catch {
       const idx = MOCK_LEASES.findIndex((l) => String(l.id) === String(id))
       if (idx !== -1) MOCK_LEASES.splice(idx, 1)
+    }
+  },
+
+  async approveLease(id: number | string, approvalData?: any): Promise<MiningLease> {
+    try {
+      const { data } = await apiClient.post<any>(`/leases/${id}/approve/`, approvalData || {})
+      const found = MOCK_LEASES.find((l) => String(l.id) === String(id) || l.lease_id === String(id))
+      if (found) {
+        found.status = 'ACTIVE'
+        found.status_display = 'Operational (Approved)'
+      }
+      return data
+    } catch {
+      const found = MOCK_LEASES.find((l) => String(l.id) === String(id) || l.lease_id === String(id))
+      if (found) {
+        found.status = 'ACTIVE'
+        found.status_display = 'Operational (Approved)'
+        return found
+      }
+      return MOCK_LEASES[0]
     }
   },
 

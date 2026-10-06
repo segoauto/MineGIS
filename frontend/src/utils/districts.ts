@@ -386,11 +386,11 @@ export const TELANGANA_DISTRICT_NAMES = Object.keys(TELANGANA_DISTRICTS).sort()
 export const STATEWIDE_JURISDICTION: DistrictJurisdiction = {
   name: 'Statewide',
   teluguName: 'తెలంగాణ రాష్ట్రం',
-  center: [79.0, 17.8],
+  center: [79.05, 17.85],
   defaultZoom: 8,
-  minZoom: 6,
+  minZoom: 7.2,
   maxZoom: 20,
-  extent: [76.5, 15.5, 82.5, 20.2],
+  extent: [77.10, 15.75, 81.90, 19.98],
   headquarters: 'Hyderabad (State HQ)',
   zone: 'Statewide Directorate',
 }

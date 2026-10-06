@@ -19,6 +19,7 @@ import TenderDemoModal from '../components/ui/TenderDemoModal'
 import BulkLeaseUploadModal from '../components/leases/BulkLeaseUploadModal'
 import LeaseDirectory from '../components/leases/LeaseDirectory'
 import FleetSurveillanceView from '../components/fleet/FleetSurveillanceView'
+import WeighbridgeANPRView from '../components/weighbridge/WeighbridgeANPRView'
 import GeofenceManager from '../components/geofence/GeofenceManager'
 import AnomalyHubPage from './AnomalyHubPage'
 import GovernancePage from './GovernancePage'
@@ -78,6 +79,7 @@ export default function PortalLayout() {
     if (path.includes('/dashboard')) return 'dashboard'
     if (path.includes('/leases')) return 'leases'
     if (path.includes('/fleet')) return 'fleet'
+    if (path.includes('/weighbridge') || path.includes('/anpr')) return 'weighbridge'
     if (path.includes('/geofences') || path.includes('/geofence')) return 'geofences'
     if (path.includes('/alerts') || path.includes('/anomaly')) return 'alerts'
     if (path.includes('/governance')) return 'governance'
@@ -105,6 +107,7 @@ export default function PortalLayout() {
         map: '/map',
         leases: '/leases',
         fleet: '/fleet',
+        weighbridge: '/weighbridge',
         geofences: '/geofences',
         alerts: '/alerts',
         reports: '/reports',
@@ -132,6 +135,7 @@ export default function PortalLayout() {
       map: '/map',
       leases: '/leases',
       fleet: '/fleet',
+      weighbridge: '/weighbridge',
       geofences: '/geofences',
       alerts: '/alerts',
       reports: '/reports',
@@ -344,7 +348,12 @@ export default function PortalLayout() {
             />
           )}
 
-          {/* 5. GEOFENCE SETUP CONSOLE */}
+          {/* 5. WEIGHBRIDGE & IN-MINE ANPR CONSOLE */}
+          {activeTab === 'weighbridge' && (
+            <WeighbridgeANPRView />
+          )}
+
+          {/* 6. GEOFENCE SETUP CONSOLE */}
           {activeTab === 'geofences' && (
             <GeofenceManager
               onOpenMap={() => handleSelectTab('map')}

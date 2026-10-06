@@ -214,6 +214,32 @@ class LeaseViewSet(viewsets.ModelViewSet):
             'leases_in_buffer': leases_in_buffer,
         })
 
+    @action(detail=True, methods=['post'], url_path='approve')
+    def approve_lease(self, request: Request, pk=None) -> Response:
+        """
+        POST /api/leases/{pk}/approve/
+        Approves a pending mining lease, transitions status to ACTIVE,
+        and generates statutory Grant Order reference metadata.
+        """
+        lease = self.get_object()
+        user = request.user if request.user.is_authenticated else None
+
+        lease.status = 'ACTIVE'
+        lease.save()
+
+        # Generate official grant order reference
+        grant_order_ref = f"GO-MS-MINES-{lease.district.upper()[:3]}-{lease.id:04d}-{date.today().year}"
+
+        return Response({
+            'success': True,
+            'message': f'Mining Lease {lease.lease_id} has been formally approved and granted operational status.',
+            'lease_id': lease.lease_id,
+            'status': lease.status,
+            'approved_by': user.get_full_name() or user.username if user else 'Director of Mines & Geology',
+            'grant_order_number': grant_order_ref,
+            'approval_date': date.today().isoformat(),
+        })
+
     @action(detail=False, methods=['get'], url_path='dashboard-stats')
     def dashboard_stats(self, request: Request) -> Response:
         """

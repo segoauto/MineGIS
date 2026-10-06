@@ -153,7 +153,7 @@ class VehicleViewSet(viewsets.ReadOnlyModelViewSet):
 
         # If dashcam is offline, parked, or privacy mode is active on IoT unit, supply live dashcam stream fallback
         if not hls_url:
-            hls_url = "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
+            hls_url = "/videos/dashcam_road.mp4"
 
         return Response({
             'vehicle_id': vehicle.pk,

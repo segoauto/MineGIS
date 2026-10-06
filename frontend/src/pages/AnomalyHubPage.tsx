@@ -23,6 +23,7 @@ import {
   FileWarning,
   Send,
   Zap,
+  Trash2,
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
@@ -30,6 +31,34 @@ import { toast } from 'react-hot-toast'
 import axios from 'axios'
 import { useMapStore, useAuthStore, type VehicleAlert } from '../store'
 import { getUserJurisdiction } from '../utils/districts'
+
+export const TELANGANA_ZONAL_OFFICERS: Record<string, { zone: string; officer: string; designation: string; email: string; phone: string }> = {
+  'Bhadradri Kothagudem': { zone: 'Kothagudem & Godavari Basin Zone', officer: 'Sri K. Venkateshwarlu', designation: 'Zonal Joint Director (Mines)', email: 'zmo.kothagudem@mines.telangana.gov.in', phone: '+91 8744-254100' },
+  'Khammam': { zone: 'Kothagudem & Godavari Basin Zone', officer: 'Sri K. Venkateshwarlu', designation: 'Zonal Joint Director (Mines)', email: 'zmo.kothagudem@mines.telangana.gov.in', phone: '+91 8744-254100' },
+  'Warangal': { zone: 'Northern Telangana Zone (Warangal)', officer: 'Sri M. Rajender Reddy', designation: 'Zonal Mining Officer', email: 'zmo.warangal@mines.telangana.gov.in', phone: '+91 870-2448201' },
+  'Karimnagar': { zone: 'Northern Telangana Zone (Warangal)', officer: 'Sri M. Rajender Reddy', designation: 'Zonal Mining Officer', email: 'zmo.warangal@mines.telangana.gov.in', phone: '+91 870-2448201' },
+  'Peddapalli': { zone: 'Northern Telangana Zone (Warangal)', officer: 'Sri M. Rajender Reddy', designation: 'Zonal Mining Officer', email: 'zmo.warangal@mines.telangana.gov.in', phone: '+91 870-2448201' },
+  'Nizamabad': { zone: 'North-Western Zone (Nizamabad)', officer: 'Smt. P. Shailaja', designation: 'Zonal Mining Officer', email: 'zmo.nizamabad@mines.telangana.gov.in', phone: '+91 8462-231120' },
+  'Adilabad': { zone: 'North-Western Zone (Nizamabad)', officer: 'Smt. P. Shailaja', designation: 'Zonal Mining Officer', email: 'zmo.nizamabad@mines.telangana.gov.in', phone: '+91 8462-231120' },
+  'Rangareddy': { zone: 'Capital & Southern Zone (Hyderabad)', officer: 'Sri B. Srinivas Rao', designation: 'Zonal Joint Director (Enforcement)', email: 'zmo.hyderabad@mines.telangana.gov.in', phone: '+91 40-23450912' },
+  'Hyderabad': { zone: 'Capital & Southern Zone (Hyderabad)', officer: 'Sri B. Srinivas Rao', designation: 'Zonal Joint Director (Enforcement)', email: 'zmo.hyderabad@mines.telangana.gov.in', phone: '+91 40-23450912' },
+  'Nalgonda': { zone: 'Capital & Southern Zone (Hyderabad)', officer: 'Sri B. Srinivas Rao', designation: 'Zonal Joint Director (Enforcement)', email: 'zmo.hyderabad@mines.telangana.gov.in', phone: '+91 40-23450912' },
+  'Mahabubnagar': { zone: 'Capital & Southern Zone (Hyderabad)', officer: 'Sri B. Srinivas Rao', designation: 'Zonal Joint Director (Enforcement)', email: 'zmo.hyderabad@mines.telangana.gov.in', phone: '+91 40-23450912' },
+  'Vikarabad': { zone: 'Capital & Southern Zone (Hyderabad)', officer: 'Sri B. Srinivas Rao', designation: 'Zonal Joint Director (Enforcement)', email: 'zmo.hyderabad@mines.telangana.gov.in', phone: '+91 40-23450912' },
+}
+
+export function getZonalOfficerForDistrict(district?: string) {
+  if (district && TELANGANA_ZONAL_OFFICERS[district]) {
+    return TELANGANA_ZONAL_OFFICERS[district]
+  }
+  return {
+    zone: 'Telangana State Mineral Directorate HQ (Hyderabad)',
+    officer: 'Sri B. Srinivas Rao',
+    designation: 'Zonal Joint Director (Statewide Enforcement)',
+    email: 'zmo.hq@mines.telangana.gov.in',
+    phone: '+91 40-23450912',
+  }
+}
 
 export interface ProductionAnomalyRecord {
   id: number
@@ -48,6 +77,8 @@ export interface ProductionAnomalyRecord {
   notes: string
   lon?: number
   lat?: number
+  is_escalated?: boolean
+  escalated_to?: string
 }
 
 // ── Fallback Production & Volume Anomalies for Telangana Concessions ──────────
@@ -278,6 +309,98 @@ export default function AnomalyHubPage({ embed = false }: { embed?: boolean }) {
     })
   }
 
+  // Escalation Modal Target State
+  const [escalationTarget, setEscalationTarget] = useState<{
+    type: 'production' | 'vehicle'
+    item: ProductionAnomalyRecord | VehicleAlert
+    district: string
+  } | null>(null)
+  const [escalationInstruction, setEscalationInstruction] = useState('')
+
+  // Delete Resolved Alert
+  const handleDeleteResolved = (id: number, type: 'production' | 'vehicle') => {
+    if (type === 'production') {
+      setProductionRecords((prev) => prev.filter((r) => r.id !== id))
+      toast.success('Resolved inquiry removed from record.')
+    } else {
+      useMapStore.setState((state) => ({
+        vehicleAlerts: state.vehicleAlerts.filter((va) => va.id !== id),
+      }))
+      toast.success('Resolved vehicle alert permanently purged.')
+    }
+  }
+
+  // Clear All Resolved Alerts
+  const handleClearAllResolved = () => {
+    const prodResolvedCount = productionRecords.filter((r) => r.status === 'RESOLVED' || r.status === 'VERIFIED').length
+    const vehResolvedCount = vehicleAlerts.filter((va) => va.is_resolved).length
+    const totalPurged = prodResolvedCount + vehResolvedCount
+
+    if (totalPurged === 0) {
+      toast('No resolved inquiries currently in log.', { icon: 'ℹ️' })
+      return
+    }
+
+    setProductionRecords((prev) => prev.filter((r) => r.status !== 'RESOLVED' && r.status !== 'VERIFIED'))
+    useMapStore.setState((state) => ({
+      vehicleAlerts: state.vehicleAlerts.filter((va) => !va.is_resolved),
+    }))
+    toast.success(`Purged ${totalPurged} resolved inquiries from active enforcement radar.`, { icon: '🗑️' })
+  }
+
+  // Open Escalation Dialog
+  const handleOpenEscalation = (item: ProductionAnomalyRecord | VehicleAlert, type: 'production' | 'vehicle') => {
+    const district =
+      type === 'production'
+        ? (item as ProductionAnomalyRecord).district
+        : ((item as any).district || (item as any).mine_name || user?.profile?.district || 'Telangana')
+    setEscalationTarget({ type, item, district })
+    setEscalationInstruction('')
+  }
+
+  // Confirm Statutory Escalation to Zonal Mining Officer
+  const handleConfirmEscalation = () => {
+    if (!escalationTarget) return
+    const { type, item, district } = escalationTarget
+    const officerInfo = getZonalOfficerForDistrict(district)
+
+    if (type === 'production') {
+      const rec = item as ProductionAnomalyRecord
+      setProductionRecords((prev) =>
+        prev.map((r) =>
+          r.id === rec.id
+            ? {
+                ...r,
+                status: 'NOTICE_ISSUED',
+                is_escalated: true,
+                escalated_to: officerInfo.officer,
+                notes: `${r.notes}\n[${new Date().toLocaleDateString('en-IN')}] ESCALATED TO ZONAL MINING OFFICER: Forwarded to ${officerInfo.officer} (${officerInfo.designation}, ${officerInfo.zone}). Immediate on-ground physical inspection directed under Section 21 of MMDR Act. ${escalationInstruction ? `Note: "${escalationInstruction}"` : ''}`,
+              }
+            : r
+        )
+      )
+    } else {
+      const va = item as VehicleAlert
+      useMapStore.setState((state) => ({
+        vehicleAlerts: state.vehicleAlerts.map((v) =>
+          v.id === va.id
+            ? {
+                ...v,
+                description: `${v.description} [ESCALATED TO ZONAL MINING OFFICER: ${officerInfo.officer} (${officerInfo.zone}) for physical field interception]`,
+              }
+            : v
+        ),
+      }))
+    }
+
+    toast.success(`Dossier officially escalated to ${officerInfo.officer} (${officerInfo.zone})!`, {
+      icon: '🚨',
+      duration: 5000,
+    })
+    setEscalationTarget(null)
+    setEscalationInstruction('')
+  }
+
   // Quick action: Inspect on Map
   const handleInspectOnMap = (lon: number, lat: number, leaseId?: string, vehicleNumber?: string) => {
     if (leaseId) selectLease(leaseId)
@@ -440,7 +563,7 @@ export default function AnomalyHubPage({ embed = false }: { embed?: boolean }) {
             { id: 'PRODUCTION', label: 'Extraction & Volume Anomalies', count: productionRecords.filter((r) => r.anomaly_flags.some((f) => f.includes('EXCAVATION') || f.includes('DISPATCH'))).length },
             { id: 'SATELLITE', label: 'Satellite Over-Excavation (NDVI)', count: productionRecords.filter((r) => r.anomaly_flags.some((f) => f.includes('SATELLITE') || f.includes('VEGETATION'))).length },
             { id: 'NOTICES', label: 'Statutory Notices (Rule 28)', count: totalNoticesIssued },
-            { id: 'RESOLVED', label: 'Resolved Inquiries', count: productionRecords.filter((r) => r.status === 'RESOLVED' || r.status === 'VERIFIED').length },
+            { id: 'RESOLVED', label: 'Resolved Inquiries', count: productionRecords.filter((r) => r.status === 'RESOLVED' || r.status === 'VERIFIED').length + vehicleAlerts.filter((v) => v.is_resolved).length },
           ].map((cat) => (
             <button
               key={cat.id}
@@ -463,6 +586,17 @@ export default function AnomalyHubPage({ embed = false }: { embed?: boolean }) {
               </span>
             </button>
           ))}
+
+          {(productionRecords.some((r) => r.status === 'RESOLVED' || r.status === 'VERIFIED') || vehicleAlerts.some((v) => v.is_resolved)) && (
+            <button
+              onClick={handleClearAllResolved}
+              className="ml-auto px-3 py-1.5 rounded-lg font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-300 text-xs shadow-xs"
+              title="Permanently remove all resolved inquiries from active view"
+            >
+              <Trash2 size={13} />
+              <span>Delete Resolved Alerts</span>
+            </button>
+          )}
         </div>
 
         {/* Search Bar & District Selector */}
@@ -572,9 +706,43 @@ export default function AnomalyHubPage({ embed = false }: { embed?: boolean }) {
                 </div>
 
                 <div className="flex items-center justify-between pt-3 mt-2 border-t border-slate-100 text-xs">
-                  <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                    {va.is_resolved ? '✓ Resolved' : '⚠️ Action Required'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={clsx(
+                        'text-[10px] font-bold px-2 py-0.5 rounded border',
+                        va.is_resolved
+                          ? 'text-emerald-800 bg-emerald-50 border-emerald-300'
+                          : 'text-amber-700 bg-amber-50 border-amber-200'
+                      )}
+                    >
+                      {va.is_resolved ? '✓ Resolved' : '⚠️ Action Required'}
+                    </span>
+
+                    {va.is_resolved ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteResolved(va.id, 'vehicle')
+                        }}
+                        className="p-1 text-slate-400 hover:text-red-600 rounded hover:bg-red-50 transition-colors cursor-pointer"
+                        title="Delete Resolved Alert"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleOpenEscalation(va, 'vehicle')
+                        }}
+                        className="text-[11px] bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-300 px-2 py-0.5 rounded font-bold transition-colors cursor-pointer flex items-center gap-1"
+                        title="Escalate to concerned Zonal Mining Officer"
+                      >
+                        <Send size={11} />
+                        <span>Escalate to Zonal Officer</span>
+                      </button>
+                    )}
+                  </div>
 
                   <button
                     onClick={(e) => {
@@ -681,7 +849,7 @@ export default function AnomalyHubPage({ embed = false }: { embed?: boolean }) {
                 </div>
 
                 <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-200 text-xs">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <span
                       className={clsx(
                         'text-[10px] font-extrabold px-2 py-0.5 rounded border uppercase',
@@ -694,9 +862,42 @@ export default function AnomalyHubPage({ embed = false }: { embed?: boolean }) {
                     >
                       {rec.status.replace(/_/g, ' ')}
                     </span>
+
+                    {rec.is_escalated && (
+                      <span className="text-[10px] bg-purple-100 text-purple-900 border border-purple-300 font-extrabold px-1.5 py-0.5 rounded">
+                        ⚡ ESCALATED TO ZONAL OFFICER
+                      </span>
+                    )}
+
+                    {(rec.status === 'RESOLVED' || rec.status === 'VERIFIED') && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteResolved(rec.id, 'production')
+                        }}
+                        className="p-1 text-slate-400 hover:text-red-600 rounded hover:bg-red-50 transition-colors cursor-pointer ml-1"
+                        title="Delete Resolved Record"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {rec.status !== 'RESOLVED' && rec.status !== 'VERIFIED' && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleOpenEscalation(rec, 'production')
+                        }}
+                        className="text-[11px] bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-300 px-2 py-1 rounded font-bold transition-colors cursor-pointer flex items-center gap-1"
+                        title="Escalate to concerned Zonal Mining Officer"
+                      >
+                        <Send size={11} />
+                        <span>Escalate to Zonal Officer</span>
+                      </button>
+                    )}
+
                     {rec.status !== 'NOTICE_ISSUED' && rec.status !== 'RESOLVED' && (
                       <button
                         onClick={(e) => {
@@ -972,6 +1173,121 @@ export default function AnomalyHubPage({ embed = false }: { embed?: boolean }) {
           </div>
         </div>
       )}
+
+      {/* ─── Statutory Escalation to Zonal Mining Officer Modal ─── */}
+      {escalationTarget && (() => {
+        const { type, item, district } = escalationTarget
+        const officerInfo = getZonalOfficerForDistrict(district)
+        const title = type === 'production'
+          ? (item as ProductionAnomalyRecord).lease_name
+          : `Vehicle ${(item as VehicleAlert).vehicle_number}`
+        const caseRef = type === 'production'
+          ? (item as ProductionAnomalyRecord).lease_id
+          : (item as VehicleAlert).alert_type
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <div className="bg-white border border-slate-300 w-full max-w-xl rounded-xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh] animate-scale-up font-sans">
+              <div className="px-6 py-4 bg-purple-900 text-white flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <ShieldAlert size={20} className="text-amber-400" />
+                  <div>
+                    <h2 className="text-sm font-bold tracking-tight">
+                      Statutory Escalation to Zonal Mining Officer
+                    </h2>
+                    <p className="text-[11px] text-purple-200">
+                      Rule 28 / Section 21 of MMDR Act • On-Ground Field Action Mandate
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setEscalationTarget(null)}
+                  className="p-1 hover:bg-white/10 rounded-lg text-white transition-colors cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4 text-xs bg-slate-50/50 overflow-y-auto">
+                {/* Target Issue Summary */}
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="font-extrabold text-sm text-slate-900">{title}</span>
+                    <span className="font-mono text-[10px] bg-slate-900 text-white px-2 py-0.5 rounded font-bold">
+                      {caseRef}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-500 font-semibold flex items-center gap-1">
+                    <MapPin size={12} className="text-gov-600" />
+                    <span>Jurisdiction: <strong>{district} District</strong></span>
+                  </div>
+                </div>
+
+                {/* Designated Zonal Officer Card */}
+                <div className="bg-purple-50/70 border-2 border-purple-200 rounded-xl p-4 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-purple-700 tracking-wider block">
+                        Assigned Statutory Zonal Authority
+                      </span>
+                      <strong className="text-sm text-purple-950 font-extrabold block mt-0.5">
+                        {officerInfo.officer}
+                      </strong>
+                      <span className="text-xs text-purple-800 font-medium">
+                        {officerInfo.designation}
+                      </span>
+                    </div>
+                    <span className="text-[10px] bg-purple-200 text-purple-900 font-mono font-bold px-2 py-0.5 rounded">
+                      FIELD ENFORCEMENT
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-[11px] bg-white p-2.5 rounded-lg border border-purple-100 text-slate-700 font-mono">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block uppercase font-bold">Zone</span>
+                      <strong className="text-slate-900 truncate block">{officerInfo.zone}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block uppercase font-bold">Official Email</span>
+                      <strong className="text-purple-700 truncate block">{officerInfo.email}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Instruction Input */}
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-700 block">
+                    Statutory Field Directives / Inspection Instructions (Optional)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={escalationInstruction}
+                    onChange={(e) => setEscalationInstruction(e.target.value)}
+                    placeholder="Enter specific directions (e.g. Conduct physical boundary pillar verification, seal uncalibrated weighbridge, or seize haul truck)..."
+                    className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900 focus:border-purple-600 focus:ring-1 focus:ring-purple-600 outline-none resize-none"
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 bg-white border-t border-slate-300 flex items-center justify-end gap-2">
+                <button
+                  onClick={() => setEscalationTarget(null)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmEscalation}
+                  className="px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Send size={13} />
+                  <span>Dispatch Statutory Escalation</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 

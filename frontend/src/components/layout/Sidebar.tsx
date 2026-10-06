@@ -2,7 +2,7 @@ import { useState } from 'react'
 import {
   LayoutDashboard, Map, FileText, Truck, ShieldAlert,
   AlertTriangle, FileBarChart2, ShieldCheck, ChevronLeft, ChevronRight,
-  HelpCircle, MapPin, Lock
+  HelpCircle, MapPin, Lock, Scale
 } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuthStore, useMapStore } from '../../store'
@@ -14,6 +14,7 @@ export type PortalTab =
   | 'map'
   | 'leases'
   | 'fleet'
+  | 'weighbridge'
   | 'geofences'
   | 'alerts'
   | 'reports'
@@ -61,6 +62,13 @@ export default function Sidebar({
       id: 'fleet',
       label: 'Vehicles & Trucks',
       icon: Truck,
+    },
+    {
+      id: 'weighbridge',
+      label: 'Weighbridge & ANPR',
+      icon: Scale,
+      badge: 'Live',
+      badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-300',
     },
     {
       id: 'geofences',

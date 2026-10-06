@@ -789,29 +789,27 @@ export function useMap(containerRef: React.RefObject<HTMLDivElement>) {
       zIndex: 41,
     })
 
-    // ── District Inverted Spatial Mask (Obscures anything outside district) ──
+    // ── Inverted Spatial Mask (Obscures anything outside Telangana or district) ──
     const maskSource = new VectorSource()
-    if (isRestricted) {
-      const worldRing = [
-        [-20037508, -20037508],
-        [20037508, -20037508],
-        [20037508, 20037508],
-        [-20037508, 20037508],
-        [-20037508, -20037508],
-      ]
-      const [minLon, minLat, maxLon, maxLat] = jurisdiction.extent
-      const p1 = fromLonLat([minLon, minLat])
-      const p2 = fromLonLat([minLon, maxLat])
-      const p3 = fromLonLat([maxLon, maxLat])
-      const p4 = fromLonLat([maxLon, minLat])
-      const districtHole = [p1, p2, p3, p4, p1]
+    const worldRing = [
+      [-20037508, -20037508],
+      [20037508, -20037508],
+      [20037508, 20037508],
+      [-20037508, 20037508],
+      [-20037508, -20037508],
+    ]
+    const [minLon, minLat, maxLon, maxLat] = jurisdiction.extent
+    const p1 = fromLonLat([minLon, minLat])
+    const p2 = fromLonLat([minLon, maxLat])
+    const p3 = fromLonLat([maxLon, maxLat])
+    const p4 = fromLonLat([maxLon, minLat])
+    const jurisdictionHole = [p1, p2, p3, p4, p1]
 
-      const maskFeature = new Feature({
-        geometry: new Polygon([worldRing, districtHole]),
-        name: 'District Mask Overlay',
-      })
-      maskSource.addFeature(maskFeature)
-    }
+    const maskFeature = new Feature({
+      geometry: new Polygon([worldRing, jurisdictionHole]),
+      name: `${jurisdiction.name} Territory Mask Overlay`,
+    })
+    maskSource.addFeature(maskFeature)
 
     const jurisdictionMaskLayer = new VectorLayer({
       source: maskSource,
@@ -883,13 +881,9 @@ export function useMap(containerRef: React.RefObject<HTMLDivElement>) {
         zoom: jurisdiction.defaultZoom,
         minZoom: jurisdiction.minZoom,
         maxZoom: jurisdiction.maxZoom,
-        ...(isRestricted
-          ? {
-              extent: extent3857,
-              constrainOnlyCenter: false,
-              smoothExtentConstraint: false,
-            }
-          : {}),
+        extent: isRestricted ? extent3857 : getJurisdiction3857Extent(jurisdiction),
+        constrainOnlyCenter: false,
+        smoothExtentConstraint: false,
       }),
       interactions: defaultInteractions(),
       controls: [
