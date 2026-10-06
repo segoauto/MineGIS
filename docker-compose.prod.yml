@@ -82,9 +82,9 @@ services:
         VITE_GEOSERVER_URL: /geoserver
     ports: []
     volumes:
-      - frontend_dist:/app/dist
+      - frontend_dist:/dist
     restart: "no"
-    command: ["sh", "-c", "cp -r /app/dist/* /dist/ && echo 'Build complete.'"]
+    command: ["sh", "-c", "cp -r /app/dist/. /dist/ && echo 'Build complete.'"]
 
   # ── Nginx (SSL) ───────────────────────────────────────────
   nginx:
