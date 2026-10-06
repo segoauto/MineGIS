@@ -165,11 +165,14 @@ TELANGANA_LEASES = [
 ]
 
 VEHICLES = [
-    {"number": "TS05UE3699", "type": "INSPECTION", "driver": "Ramesh Kumar", "district": "Bhadradri Kothagudem", "lat": 17.6, "lon": 80.5},
-    {"number": "TS05UE0999", "type": "ENFORCEMENT", "driver": "Suresh Reddy", "district": "Nalgonda", "lat": 16.88, "lon": 79.56},
-    {"number": "TG05T8099", "type": "SURVEY", "driver": "Vijay Babu", "district": "Karimnagar", "lat": 18.44, "lon": 79.12},
-    {"number": "TG05U2349", "type": "TRANSPORT", "driver": "Arun Sharma", "district": "Khammam", "lat": 17.68, "lon": 80.80},
-    {"number": "TS05UE9099", "type": "OFFICIAL", "driver": "Nagaraju Rao", "district": "Mancherial", "lat": 18.88, "lon": 79.40},
+    {"number": "TG07U1889", "device_id": "6603125484", "type": "ENFORCEMENT", "driver": "Transit Driver (TG-07)", "district": "Mahabubnagar", "lat": 16.5268, "lon": 77.5564},
+    {"number": "TS05UE3699", "device_id": "6603102896", "type": "TRANSPORT", "driver": "Transit Driver (TG-05A)", "district": "Mahabubnagar", "lat": 15.1885, "lon": 77.0961},
+    {"number": "TS05UE0999", "device_id": "6603087682", "type": "TRANSPORT", "driver": "Transit Driver (TG-05B)", "district": "Nalgonda", "lat": 17.3416, "lon": 78.5189},
+    {"number": "TS05UE9099", "device_id": "6603102874", "type": "TRANSPORT", "driver": "Transit Driver (TG-05C)", "district": "Vikarabad", "lat": 17.1596, "lon": 79.3158},
+    {"number": "TS02UD0953", "device_id": "6603125086", "type": "SURVEY", "driver": "Transit Driver (TS-02)", "district": "Karimnagar", "lat": 17.3441, "lon": 78.5764},
+    {"number": "TS12UD9828", "device_id": "6603125542", "type": "TRANSPORT", "driver": "Transit Driver (TS-12)", "district": "Bhadradri Kothagudem", "lat": 17.3400, "lon": 78.5794},
+    {"number": "TG05T8099", "device_id": "6603094534", "type": "ENFORCEMENT", "driver": "Transit Driver (TG-05D)", "district": "Nizamabad", "lat": 18.2187, "lon": 80.5640},
+    {"number": "TG05U2349", "device_id": "6603101915", "type": "TRANSPORT", "driver": "Transit Driver (TG-05E)", "district": "Bhadradri Kothagudem", "lat": 17.6336, "lon": 79.0486},
 ]
 
 
@@ -352,7 +355,7 @@ class Command(BaseCommand):
             loc = Point(v["lon"], v["lat"], srid=4326) if v.get("lat") else None
             from django.utils import timezone
             Vehicle.objects.create(
-                netradyne_device_id=f"ND-{v['number'].replace(' ', '-')}",
+                netradyne_device_id=v.get("device_id") or f"ND-{v['number'].replace(' ', '-')}",
                 vehicle_number=v["number"],
                 vehicle_type=v["type"],
                 driver_name=v["driver"],

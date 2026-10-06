@@ -38,7 +38,7 @@ class VehicleViewSet(viewsets.ReadOnlyModelViewSet):
     ordering_fields = ['vehicle_number', 'assigned_district', 'last_seen']
 
     def get_queryset(self):
-        qs = Vehicle.objects.select_related('assigned_officer', 'current_lease').all()
+        qs = Vehicle.objects.exclude(vehicle_number__contains=' ').select_related('assigned_officer', 'current_lease').all()
         user = getattr(self.request, 'user', None)
         if user and user.is_authenticated and hasattr(user, 'profile'):
             district = (getattr(user.profile, 'district', '') or '').strip()
@@ -184,7 +184,7 @@ def all_alerts(request: Request) -> Response:
     """
     GET /api/vehicles/alerts/?severity=HIGH&resolved=false
     """
-    queryset = VehicleAlert.objects.select_related('vehicle', 'lease', 'resolved_by')
+    queryset = VehicleAlert.objects.exclude(vehicle__vehicle_number__contains=' ').select_related('vehicle', 'lease', 'resolved_by')
 
     severity = request.query_params.get('severity')
     if severity:

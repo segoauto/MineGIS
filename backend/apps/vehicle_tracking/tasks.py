@@ -40,22 +40,30 @@ def sync_vehicle_locations(self):
     updated_vehicle_ids = []
 
     for v in raw_vehicles:
-        device_id = v.get("deviceId")
-        if not device_id:
+        device_id = str(v.get("deviceId") or "").strip()
+        reg_num = str(v.get("vehicle_number") or "").strip()
+        if not device_id and not reg_num:
             continue
 
-        try:
-            vehicle = Vehicle.objects.get(netradyne_device_id=device_id)
-        except Vehicle.DoesNotExist:
-            logger.warning(f"Vehicle not found for device {device_id}")
+        vehicle = None
+        if device_id:
+            vehicle = Vehicle.objects.filter(netradyne_device_id=device_id).first()
+        if not vehicle and reg_num:
+            vehicle = Vehicle.objects.filter(vehicle_number=reg_num).first()
+            if vehicle and device_id and vehicle.netradyne_device_id != device_id:
+                vehicle.netradyne_device_id = device_id
+                vehicle.save(update_fields=['netradyne_device_id'])
+
+        if not vehicle:
+            logger.warning(f"Vehicle not found for device {device_id} / number {reg_num}")
             continue
 
-        lat = v.get("lat")
-        lon = v.get("lon")
+        lat = v.get("latitude") if v.get("latitude") is not None else v.get("lat")
+        lon = v.get("longitude") if v.get("longitude") is not None else v.get("lon")
         timestamp_str = v.get("timestamp")
-        speed = float(v.get("speed", 0))
+        speed = float(v.get("speed_kmh") if v.get("speed_kmh") is not None else v.get("speed", 0))
         heading = float(v.get("heading", 0))
-        engine_on = v.get("engineOn", True)
+        engine_on = bool(v.get("engineOn") if v.get("engineOn") is not None else v.get("engine_on", True))
 
         # Parse timestamp
         if timestamp_str:

@@ -87,7 +87,18 @@ export const vehiclesApi = {
     try {
       const { data } = await apiClient.get<{ results: Vehicle[] }>('/vehicles/')
       if (data && Array.isArray(data.results) && data.results.length > 0) {
-        return data.results
+        const validVehicles = data.results.filter(
+          (v) => v.vehicle_number && !v.vehicle_number.includes(' ') && (v.vehicle_number.startsWith('TG') || v.vehicle_number.startsWith('TS'))
+        )
+        if (validVehicles.length > 0) {
+          return validVehicles.map((v) => {
+            const enriched = fallbackVehicles.find((ev) => ev.vehicle_number === v.vehicle_number)
+            return {
+              ...(enriched || {}),
+              ...v,
+            }
+          })
+        }
       }
       return fallbackVehicles
     } catch {
@@ -183,6 +194,12 @@ export const vehiclesApi = {
         '/vehicles/alerts/',
         { params }
       )
+      if (data && Array.isArray(data.results)) {
+        const cleanResults = data.results.filter(
+          (a) => a.vehicle_number && !a.vehicle_number.includes(' ') && (a.vehicle_number.startsWith('TG') || a.vehicle_number.startsWith('TS'))
+        )
+        return { results: cleanResults, count: cleanResults.length }
+      }
       return data
     } catch {
       const scopedVehicles = getAllRealVehicles()
