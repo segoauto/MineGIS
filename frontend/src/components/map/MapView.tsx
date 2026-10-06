@@ -316,8 +316,8 @@ export default function MapView() {
         style={{ background: '#F1F5F9', cursor: drawBoundaryMode ? 'crosshair' : undefined }}
       />
       
-      {/* Map Zoom In (+) / Zoom Out (-) Controls */}
-      <div className="absolute top-4 left-4 z-20 flex flex-col rounded-lg bg-white/95 backdrop-blur-xs border border-slate-300 shadow-md overflow-hidden">
+      {/* Map Zoom In (+) / Zoom Out (-) Controls in Bottom-Left */}
+      <div className="absolute bottom-6 left-4 z-20 flex flex-col rounded-lg bg-white/95 backdrop-blur-xs border border-slate-300 shadow-lg overflow-hidden">
         <button
           onClick={() => {
             if (mapRef.current) {
@@ -325,7 +325,7 @@ export default function MapView() {
               view.animate({ zoom: (view.getZoom() ?? 8) + 1, duration: 200 })
             }
           }}
-          className="w-8 h-8 flex items-center justify-center text-slate-800 hover:bg-slate-100 hover:text-gov-700 font-extrabold text-lg transition-colors border-b border-slate-200 select-none cursor-pointer"
+          className="w-9 h-9 flex items-center justify-center text-slate-800 hover:bg-slate-100 hover:text-gov-700 font-extrabold text-xl transition-colors border-b border-slate-200 select-none cursor-pointer"
           title="Zoom In (+)"
           aria-label="Zoom in"
         >
@@ -338,7 +338,7 @@ export default function MapView() {
               view.animate({ zoom: (view.getZoom() ?? 8) - 1, duration: 200 })
             }
           }}
-          className="w-8 h-8 flex items-center justify-center text-slate-800 hover:bg-slate-100 hover:text-gov-700 font-extrabold text-lg transition-colors select-none cursor-pointer"
+          className="w-9 h-9 flex items-center justify-center text-slate-800 hover:bg-slate-100 hover:text-gov-700 font-extrabold text-xl transition-colors select-none cursor-pointer"
           title="Zoom Out (−)"
           aria-label="Zoom out"
         >

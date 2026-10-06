@@ -15,7 +15,7 @@ import Select from 'ol/interaction/Select'
 import { pointerMove, click } from 'ol/events/condition'
 import { defaults as defaultInteractions } from 'ol/interaction'
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style'
-import { ScaleLine, OverviewMap, ZoomSlider, MousePosition, Attribution, FullScreen } from 'ol/control'
+import { ScaleLine, OverviewMap, MousePosition, Attribution, FullScreen } from 'ol/control'
 import { createStringXY } from 'ol/coordinate'
 import Feature from 'ol/Feature'
 import Point from 'ol/geom/Point'
@@ -894,7 +894,6 @@ export function useMap(containerRef: React.RefObject<HTMLDivElement>) {
       interactions: defaultInteractions(),
       controls: [
         new ScaleLine({ units: 'metric', bar: true }),
-        new ZoomSlider(),
         new MousePosition({
           coordinateFormat: (coord) => {
             if (!coord) return ''
