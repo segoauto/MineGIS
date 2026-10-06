@@ -444,16 +444,14 @@ export default function WeighbridgeANPRView() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Primary Main Camera (With Real Crisp Transit Video) */}
-            <div className="lg:col-span-2 relative bg-black rounded-xl overflow-hidden border border-slate-800 shadow-md group">
-              <video
-                src="/videos/dashcam_road.mp4"
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="w-full h-72 sm:h-84 object-cover"
-              />
+            {/* Primary Main Camera (Blank Screen for Cameras) */}
+            <div className="lg:col-span-2 relative bg-slate-950 rounded-xl overflow-hidden border border-slate-800 shadow-md h-72 sm:h-84 flex items-center justify-center">
+              {/* Clean Blank Camera Screen Graphic */}
+              <div className="flex flex-col items-center justify-center text-slate-600 select-none pointer-events-none">
+                <Camera size={40} className="text-slate-700 mb-2 opacity-50" />
+                <span className="text-xs font-mono font-bold text-slate-500 tracking-wider">OPTICAL ANPR CAMERA FEED</span>
+                <span className="text-[10px] text-slate-600 font-mono mt-0.5">STANDBY · WAITING FOR VEHICLE SCALE INGRESS</span>
+              </div>
 
               {/* In-Video ANPR HUD Overlay */}
               <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/75 backdrop-blur-md px-3 py-1 rounded text-white text-xs border border-white/20">
