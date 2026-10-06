@@ -88,7 +88,7 @@ export default function GeofenceAlertPopup() {
     driver_name: alert.driverName || 'Designated Driver',
     driver_license: 'DL-TG-2018-091234',
     assigned_district: alert.district || 'Mahabubnagar',
-    assigned_officer_name: 'G. Venkateswarlu, DMO',
+    assigned_officer_name: 'District Mineral Officer',
     last_lon: alert.lon,
     last_lat: alert.lat,
     last_seen: new Date().toISOString(),

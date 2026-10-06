@@ -34,11 +34,11 @@ export default function SsoCallbackPage() {
         console.warn('SSO Backend offline, activating verified NIC Officer session:', err);
         const mockUser = {
           id: 2,
-          username: 'rajeshwar.rao@ts.gov.in',
-          email: 'rajeshwar.rao@ts.gov.in',
-          first_name: 'B. Rajeshwar',
-          last_name: 'Rao',
-          full_name: 'B. Rajeshwar Rao (DMO Nizamabad)',
+          username: 'dmo.nizamabad@ts.gov.in',
+          email: 'dmo.nizamabad@ts.gov.in',
+          first_name: 'District',
+          last_name: 'Mineral Officer',
+          full_name: 'District Mineral Officer (Nizamabad)',
           is_staff: true,
           profile: {
             role: 'DISTRICT_OFFICER',

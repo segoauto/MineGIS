@@ -109,7 +109,7 @@ export default function TenderDemoModal() {
       action: () => {
         const testVeh = vehicles[0] || {
           vehicle_number: 'TG05U2349',
-          driver_name: 'M. Prabhakar Reddy',
+          driver_name: 'Transit Driver (TG-05B)',
           assigned_district: 'Bhadradri Kothagudem',
           last_lon: 80.615,
           last_lat: 17.550,

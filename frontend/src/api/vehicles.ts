@@ -10,7 +10,7 @@ export const MOCK_ALERTS: VehicleAlert[] = [
   {
     id: 501,
     vehicle_number: 'TG05U2349',
-    driver_name: 'M. Prabhakar Reddy',
+    driver_name: 'Transit Driver (TG-05B)',
     alert_type: 'ROUTE_DEVIATION',
     alert_type_display: 'Corridor Transit Deviation (>2.5km off approved Mineral e-Challan route)',
     severity: 'HIGH',
@@ -27,7 +27,7 @@ export const MOCK_ALERTS: VehicleAlert[] = [
   {
     id: 502,
     vehicle_number: 'TG05T8099',
-    driver_name: 'N. Ramesh Yadav',
+    driver_name: 'Transit Driver (TG-05A)',
     alert_type: 'GEOFENCE_ENTRY',
     alert_type_display: 'Geofence Entry into River Sand Reach Buffer',
     severity: 'MEDIUM',
@@ -38,13 +38,13 @@ export const MOCK_ALERTS: VehicleAlert[] = [
     timestamp: new Date().toISOString(),
     description: 'Flying squad entered Godavari River Sand Reach boundary for random check.',
     is_resolved: true,
-    resolved_by_name: 'B. Rajeshwar Rao (DMO)',
+    resolved_by_name: 'District Mineral Officer (Nizamabad)',
     resolved_at: new Date().toISOString(),
   },
   {
     id: 503,
     vehicle_number: 'TG07U1889',
-    driver_name: 'S. Ramakrishna',
+    driver_name: 'Transit Driver (TG-07)',
     alert_type: 'GEOFENCE_ENTRY',
     alert_type_display: 'Geofence Entry into Ibrahimpatnam Concession Perimeter',
     severity: 'MEDIUM',
@@ -61,7 +61,7 @@ export const MOCK_ALERTS: VehicleAlert[] = [
   {
     id: 504,
     vehicle_number: 'TS12UD9828',
-    driver_name: 'K. Venkatesham',
+    driver_name: 'Transit Driver (TS-12)',
     alert_type: 'OVERSPEEDING',
     alert_type_display: 'Overspeeding in Mine Loading Area (Speed: 52 km/h, Limit: 30 km/h)',
     severity: 'HIGH',

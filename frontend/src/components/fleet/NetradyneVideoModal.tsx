@@ -636,7 +636,7 @@ export default function NetradyneVideoModal({
           <div className="bg-slate-950 border border-slate-800 rounded-lg p-2.5">
             <div className="text-[11px] font-medium text-slate-400">Assigned Driver</div>
             <div className="text-xs font-bold text-slate-200 mt-1 truncate">
-              {vehicle.driver_name || 'S. Ramakrishna'}
+              {vehicle.driver_name || 'Authorized Transit Driver'}
             </div>
             <div className="text-[10px] text-slate-500 mt-1 truncate">
               {vehicle.driver_license || 'DL-TG-2018-091234'}
