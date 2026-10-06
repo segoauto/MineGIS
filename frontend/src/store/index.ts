@@ -7,6 +7,7 @@ import type {
   MeasurementResult, BufferResult, ConflictResult,
   SearchResult, SpatialBookmark, SpectralAnalysisResult,
 } from '../types'
+export type { VehicleAlert } from '../types'
 import { getUserJurisdiction } from '../utils/districts'
 
 export interface ActiveGeofenceAlertPopup {
@@ -273,6 +274,94 @@ const DEFAULT_LAYERS: LayerConfig[] = [
   },
 ]
 
+export const INITIAL_VEHICLE_ALERTS: VehicleAlert[] = [
+  {
+    id: 9001,
+    vehicle_number: 'TG07U1889',
+    driver_name: 'S. Ramakrishna',
+    alert_type: 'GEOFENCE_EXIT',
+    alert_type_display: 'Geofence Trespass: Unauthorized Egress from Godavari Sand Reach 7',
+    severity: 'HIGH',
+    alert_lon: 77.556427,
+    alert_lat: 16.526802,
+    lease_id: 'TS-NZB-SAND-022',
+    mine_name: 'Godavari Reach-7 Sand Extraction Geofence',
+    timestamp: new Date(Date.now() - 15 * 60000).toISOString(),
+    description: 'Vehicle exited authorized sand extraction perimeter outside permitted haul hours (after 18:00 hrs). Vigilance flying squad alerted.',
+    is_resolved: false,
+    resolved_by_name: null,
+    resolved_at: null,
+  },
+  {
+    id: 9002,
+    vehicle_number: 'TS05UE3699',
+    driver_name: 'Ch. Venkat Reddy',
+    alert_type: 'OVERSPEEDING',
+    alert_type_display: 'Over-speeding in Eco-Sensitive Transit Corridor',
+    severity: 'HIGH',
+    alert_lon: 77.096092,
+    alert_lat: 15.188594,
+    lease_id: 'TS-MBN-QTZ-005',
+    mine_name: 'Bellary - Badepally Highway Transit Corridor',
+    timestamp: new Date(Date.now() - 42 * 60000).toISOString(),
+    description: 'Vehicle clocked at 68 km/h in designated 40 km/h restricted mineral transport corridor. Automated notice generated.',
+    is_resolved: false,
+    resolved_by_name: null,
+    resolved_at: null,
+  },
+  {
+    id: 9003,
+    vehicle_number: 'TS05UE0999',
+    driver_name: 'T. Srinivas Yadav',
+    alert_type: 'GEOFENCE_ENTRY',
+    alert_type_display: 'Prohibited Eco-Buffer Penetration',
+    severity: 'HIGH',
+    alert_lon: 78.518944,
+    alert_lat: 17.341644,
+    lease_id: 'TS-RGD-STN-003',
+    mine_name: 'Ibrahimpatnam Stone Quarry Zone',
+    timestamp: new Date(Date.now() - 110 * 60000).toISOString(),
+    description: 'Vehicle penetrated 100m restricted environmental buffer zone along natural water drainage course without statutory permit.',
+    is_resolved: false,
+    resolved_by_name: null,
+    resolved_at: null,
+  },
+  {
+    id: 9004,
+    vehicle_number: 'TS12UD9828',
+    driver_name: 'K. Venkatesham',
+    alert_type: 'ROUTE_DEVIATION',
+    alert_type_display: 'Route Deviation from Approved Coal Dispatch Corridor',
+    severity: 'MEDIUM',
+    alert_lon: 78.579422,
+    alert_lat: 17.340033,
+    lease_id: 'TS-KGM-COAL-001',
+    mine_name: 'Singareni Collieries OCP-IV',
+    timestamp: new Date(Date.now() - 180 * 60000).toISOString(),
+    description: 'Vehicle deviated by > 1.2 km from mandated weighbridge corridor into rural bypass road.',
+    is_resolved: false,
+    resolved_by_name: null,
+    resolved_at: null,
+  },
+  {
+    id: 9005,
+    vehicle_number: 'TG05T8099',
+    driver_name: 'N. Ramesh Yadav',
+    alert_type: 'GEOFENCE_UNAUTHORIZED',
+    alert_type_display: 'Unauthorized Nighttime Sand Movement',
+    severity: 'HIGH',
+    alert_lon: 80.563973,
+    alert_lat: 18.218651,
+    lease_id: 'TS-NZB-SAND-022',
+    mine_name: 'Palaigudem Sand Reach (Mulugu)',
+    timestamp: new Date(Date.now() - 320 * 60000).toISOString(),
+    description: 'Unscheduled movement detected at 23:45 hrs. Rule 24 of TS Minor Mineral Concession Rules prohibits night haulage.',
+    is_resolved: false,
+    resolved_by_name: null,
+    resolved_at: null,
+  },
+]
+
 export const useMapStore = create<MapStore>()(
   persist(
     (set) => ({
@@ -304,8 +393,8 @@ export const useMapStore = create<MapStore>()(
       vehicles: REAL_NETRADYNE_VEHICLES,
       vehiclesVisible: true,
       selectedVehicleId: null,
-      vehicleAlerts: [],
-      unreadAlertCount: 0,
+      vehicleAlerts: INITIAL_VEHICLE_ALERTS,
+      unreadAlertCount: 4,
 
       drawBoundaryMode: false,
       drawTarget: null,
