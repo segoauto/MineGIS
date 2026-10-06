@@ -3,7 +3,7 @@ import {
   MapPin, Satellite, Mountain, Map,
   Bell, BookmarkIcon, User, LogOut,
   ChevronDown, Settings, ShieldCheck, CheckCircle2,
-  ExternalLink, Layers, Sparkles, RotateCcw, Split
+  ExternalLink, Layers, Sparkles, RotateCcw, Split, UserCheck
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useMapStore, useAuthStore } from '../../store'
@@ -472,6 +472,18 @@ export default function TopBar() {
                   >
                     <Layers size={14} className="text-gov-600" />
                     <span>Boundary Alerts</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      logout()
+                      navigate('/login')
+                      setShowUser(false)
+                    }}
+                    className="w-full text-left px-3 py-1.5 rounded hover:bg-blue-50 text-gov-800 font-semibold flex items-center gap-2"
+                  >
+                    <UserCheck size={14} className="text-gov-600" />
+                    <span>Switch Role / Test RBAC</span>
                   </button>
                 </div>
 

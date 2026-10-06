@@ -13,26 +13,15 @@ const TOOLS: { id: Tool; label: string; icon: React.ElementType; title: string }
   { id: 'conflict',         label: 'Conflicts', icon: AlertCircle, title: 'Conflict detection (server-side, PostGIS)' },
 ]
 
+import { getRolePermissions } from '../../utils/rbac'
+
 export default function SpatialToolbar() {
   const { activeTool, setActiveTool, measurementResult, selectedLeaseId, drawBoundaryMode, setDrawBoundaryMode, openLeaseCreateForm } = useMapStore()
   const { user } = useAuthStore()
 
   const role = user?.profile?.role || ''
-  const canManageLeases =
-    Boolean(user?.is_staff) ||
-    [
-      'R01_SUPER_ADMIN',
-      'ADMIN',
-      'STATE_ADMIN',
-      'R03_STATE_MGR',
-      'APPROVER',
-      'R04_DISTRICT_OFFICER',
-      'DISTRICT_OFFICER',
-      'R06_DATA_ENTRY',
-      'DATA_ENTRY',
-      'R07_GIS_ANALYST',
-      'DEVELOPER',
-    ].includes(role)
+  const perms = getRolePermissions(role)
+  const canManageLeases = perms.canCreateLease || perms.canDrawBoundaries || Boolean(user?.is_staff)
 
   const handleTool = (id: Tool) => {
     if (id === 'buffer' || id === 'conflict') {

@@ -11,6 +11,7 @@ import {
 import clsx from 'clsx'
 import { useAuthStore, useMapStore } from '../../store'
 import { getUserJurisdiction } from '../../utils/districts'
+import { getRolePermissions } from '../../utils/rbac'
 import { REAL_NETRADYNE_VEHICLES } from '../../data/realVehicles'
 import { MOCK_LEASES } from '../../api/leases'
 import NetradyneVideoModal from '../fleet/NetradyneVideoModal'
@@ -278,6 +279,7 @@ export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: Geofence
   } = useMapStore()
   const jurisdiction = getUserJurisdiction(user?.profile?.district)
   const isRestricted = jurisdiction.name !== 'Statewide'
+  const perms = getRolePermissions(user?.profile?.role)
   const STORAGE_KEY = 'minegis_geofences_v2'
 
   const [activeTab, setActiveTab] = useState<ActiveViewTab>('ZONES')
@@ -509,6 +511,10 @@ export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: Geofence
 
   const handleCreateGeofence = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!perms.canManageGeofences) {
+      toast.error('Permission Denied: Your assigned role cannot create or modify statutory geofences.')
+      return
+    }
     if (!newZoneName.trim()) {
       toast.error('Please enter a valid Geofence Name')
       return
@@ -855,6 +861,10 @@ export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: Geofence
   }
 
   const handleDelete = (id: string, name: string) => {
+    if (!perms.canManageGeofences) {
+      toast.error('Permission Denied: Your assigned role cannot delete statutory geofences.')
+      return
+    }
     if (confirm(`Are you sure you want to permanently delete and remove geofence "${name}"?`)) {
       setGeofences((prev) => prev.filter((g) => g.id !== id))
       toast.success(`Geofence "${name}" (${id}) removed from system.`, {

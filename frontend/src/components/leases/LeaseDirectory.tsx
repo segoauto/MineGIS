@@ -8,6 +8,7 @@ import clsx from 'clsx'
 import { useAuthStore, useMapStore } from '../../store'
 import { leasesApi } from '../../api/leases'
 import { getUserJurisdiction } from '../../utils/districts'
+import { getRolePermissions } from '../../utils/rbac'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { MiningLease } from '../../types'
 import BulkLeaseUploadModal from './BulkLeaseUploadModal'
@@ -19,6 +20,7 @@ interface LeaseDirectoryProps {
 export default function LeaseDirectory({ onInspectLeaseOnMap }: LeaseDirectoryProps) {
   const { user } = useAuthStore()
   const { selectLease, openLeaseCreateForm } = useMapStore()
+  const perms = getRolePermissions(user?.profile?.role)
   const jurisdiction = getUserJurisdiction(user?.profile?.district)
   const isRestricted = jurisdiction.name !== 'Statewide'
 
@@ -84,20 +86,29 @@ export default function LeaseDirectory({ onInspectLeaseOnMap }: LeaseDirectoryPr
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsBulkUploadOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-gov-700 border border-gov-600 rounded text-xs font-bold shadow-xs transition-colors cursor-pointer"
-            >
-              <Upload size={15} />
-              <span>Bulk Upload (CSV / XLSX)</span>
-            </button>
-            <button
-              onClick={() => openLeaseCreateForm()}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-gov-600 hover:bg-gov-700 text-white rounded text-xs font-bold shadow-xs transition-colors cursor-pointer"
-            >
-              <Plus size={15} />
-              <span>Register New Lease</span>
-            </button>
+            {perms.canBulkUpload && (
+              <button
+                onClick={() => setIsBulkUploadOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-gov-700 border border-gov-600 rounded text-xs font-bold shadow-xs transition-colors cursor-pointer"
+              >
+                <Upload size={15} />
+                <span>Bulk Upload (CSV / XLSX)</span>
+              </button>
+            )}
+            {perms.canCreateLease && (
+              <button
+                onClick={() => openLeaseCreateForm()}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-gov-600 hover:bg-gov-700 text-white rounded text-xs font-bold shadow-xs transition-colors cursor-pointer"
+              >
+                <Plus size={15} />
+                <span>Register New Lease</span>
+              </button>
+            )}
+            {!perms.canCreateLease && !perms.canBulkUpload && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 border border-slate-300 text-slate-600 rounded text-xs font-semibold">
+                <span>🔒 Read-Only Directory</span>
+              </div>
+            )}
           </div>
         </div>
 

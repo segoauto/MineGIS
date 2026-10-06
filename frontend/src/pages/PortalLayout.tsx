@@ -22,12 +22,13 @@ import FleetSurveillanceView from '../components/fleet/FleetSurveillanceView'
 import GeofenceManager from '../components/geofence/GeofenceManager'
 import AnomalyHubPage from './AnomalyHubPage'
 import GovernancePage from './GovernancePage'
+import { getRolePermissions, isTabAllowed } from '../utils/rbac'
 import type { MiningLease, Vehicle } from '../types'
 import { Layers, Ruler, Truck, ShieldAlert, PenLine, CheckCircle2, X } from 'lucide-react'
 import clsx from 'clsx'
 
 export default function PortalLayout() {
-  const { setUser, logout } = useAuthStore()
+  const { user, setUser, logout } = useAuthStore()
   const {
     reportModalOpen,
     setReportModalOpen,
@@ -80,18 +81,44 @@ export default function PortalLayout() {
     if (path.includes('/governance')) return 'governance'
     if (path.includes('/reports')) return 'reports'
     if (path.includes('/map')) return 'map'
-    // Default root page: Start on Executive Dashboard for a standard user-friendly experience
+    // Default root page
     return 'dashboard'
   }
 
-  const [activeTab, setActiveTab] = useState<PortalTab>(getTabFromPath(location.pathname))
+  const role = user?.profile?.role
+  const perms = getRolePermissions(role)
+
+  const rawTab = getTabFromPath(location.pathname)
+  // Ensure the current tab is allowed for the user's role
+  const resolvedTab = isTabAllowed(role, rawTab) ? rawTab : (perms.allowedTabs[0] || 'map')
+  const [activeTab, setActiveTab] = useState<PortalTab>(resolvedTab)
 
   useEffect(() => {
-    const tab = getTabFromPath(location.pathname)
-    setActiveTab(tab)
-  }, [location.pathname])
+    const currentRawTab = getTabFromPath(location.pathname)
+    if (!isTabAllowed(role, currentRawTab)) {
+      const fallbackTab = perms.allowedTabs[0] || 'map'
+      setActiveTab(fallbackTab)
+      const routeMap: Record<PortalTab, string> = {
+        dashboard: '/dashboard',
+        map: '/map',
+        leases: '/leases',
+        fleet: '/fleet',
+        geofences: '/geofences',
+        alerts: '/alerts',
+        reports: '/reports',
+        governance: '/governance',
+      }
+      navigate(routeMap[fallbackTab], { replace: true })
+    } else {
+      setActiveTab(currentRawTab)
+    }
+  }, [location.pathname, role])
 
   const handleSelectTab = (tab: PortalTab) => {
+    if (!isTabAllowed(role, tab)) {
+      return
+    }
+
     if (tab === 'reports') {
       setReportModalOpen(true)
       return

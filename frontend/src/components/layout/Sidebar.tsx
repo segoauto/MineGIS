@@ -2,11 +2,12 @@ import { useState } from 'react'
 import {
   LayoutDashboard, Map, FileText, Truck, ShieldAlert,
   AlertTriangle, FileBarChart2, ShieldCheck, ChevronLeft, ChevronRight,
-  HelpCircle, MapPin
+  HelpCircle, MapPin, Lock
 } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuthStore, useMapStore } from '../../store'
 import { getUserJurisdiction } from '../../utils/districts'
+import { getRolePermissions } from '../../utils/rbac'
 
 export type PortalTab =
   | 'dashboard'
@@ -34,11 +35,13 @@ export default function Sidebar({
   const { user } = useAuthStore()
   const { unreadAlertCount, vehicleAlerts } = useMapStore()
 
+  const role = user?.profile?.role
+  const perms = getRolePermissions(role)
   const jurisdiction = getUserJurisdiction(user?.profile?.district)
   const isRestricted = jurisdiction.name !== 'Statewide'
   const activeAlertCount = vehicleAlerts.filter(a => !a.is_resolved).length + unreadAlertCount
 
-  const NAV_ITEMS: { id: PortalTab; label: string; icon: React.ElementType; badge?: string | number; badgeColor?: string }[] = [
+  const ALL_NAV_ITEMS: { id: PortalTab; label: string; icon: React.ElementType; badge?: string | number; badgeColor?: string }[] = [
     {
       id: 'dashboard',
       label: 'Dashboard',
@@ -85,6 +88,9 @@ export default function Sidebar({
     },
   ]
 
+  // Filter navigation items by role permissions
+  const NAV_ITEMS = ALL_NAV_ITEMS.filter((item) => perms.allowedTabs.includes(item.id))
+
   return (
     <aside
       className={clsx(
@@ -95,8 +101,13 @@ export default function Sidebar({
       {/* ── Navigation List ── */}
       <div className="flex-1 py-3 overflow-y-auto custom-scrollbar flex flex-col">
         {!collapsed && (
-          <div className="px-4 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-            Menu
+          <div className="px-4 mb-2 flex items-center justify-between text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+            <span>Menu ({NAV_ITEMS.length} Tabs)</span>
+            {perms.isReadOnly && (
+              <span className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded border border-slate-300">
+                View Only
+              </span>
+            )}
           </div>
         )}
 
