@@ -718,7 +718,7 @@ class Command(BaseCommand):
                 "severity": "LOW",
                 "lease_key": "ML/TS/2021/00456",
                 "hours_ago": 8,
-                "description": "Vehicle completed inspection at ML/TS/2021/00456 and exited geofence.",
+                "description": "Vehicle TS05UE3699 completed inspection at ML/TS/2021/00456 and exited geofence perimeter.",
             },
             {
                 "vehicle_key": "ND-TS-003",
@@ -726,7 +726,7 @@ class Command(BaseCommand):
                 "severity": "MEDIUM",
                 "lease_key": None,
                 "hours_ago": 18,
-                "description": "Harsh braking event detected for vehicle TS 11 EC 2345 near NH-63.",
+                "description": "Harsh braking event detected for vehicle TG05T8099 near NH-63 transit corridor.",
             },
             {
                 "vehicle_key": "ND-TS-005",
@@ -734,7 +734,7 @@ class Command(BaseCommand):
                 "severity": "LOW",
                 "lease_key": None,
                 "hours_ago": 26,
-                "description": "Engine idle for 45 minutes at Rangareddy inspection site.",
+                "description": "Engine idle for 45 minutes on vehicle TS05UE9099 at Rangareddy inspection site.",
             },
             {
                 "vehicle_key": "ND-TS-004",
@@ -742,7 +742,7 @@ class Command(BaseCommand):
                 "severity": "LOW",
                 "lease_key": "ML/TS/2018/00156",
                 "hours_ago": 30,
-                "description": "Vehicle TS 11 ED 9012 commenced inspection at ML/TS/2018/00156 (Nalgonda Limestone).",
+                "description": "Vehicle TG05U2349 commenced inspection at ML/TS/2018/00156 (Nalgonda Limestone).",
             },
             {
                 "vehicle_key": "ND-TS-008",
@@ -750,7 +750,7 @@ class Command(BaseCommand):
                 "severity": "HIGH",
                 "lease_key": "ML/TS/2015/00045",
                 "hours_ago": 48,
-                "description": "ALERT: Unauthorized access to SUSPENDED lease ML/TS/2015/00045 by vehicle TS 09 EH 1357.",
+                "description": "ALERT: Unauthorized geofence access to SUSPENDED lease ML/TS/2015/00045 by vehicle TS 09 EH 1357.",
             },
             {
                 "vehicle_key": "ND-TS-002",
@@ -758,7 +758,7 @@ class Command(BaseCommand):
                 "severity": "HIGH",
                 "lease_key": None,
                 "hours_ago": 72,
-                "description": "Vehicle TS 09 EB 5678 detected at 91 km/h on NH-30 — critical overspeeding.",
+                "description": "Vehicle TS05UE0999 detected at 91 km/h on NH-30 — critical overspeeding.",
             },
             {
                 "vehicle_key": "ND-TS-006",
@@ -774,7 +774,7 @@ class Command(BaseCommand):
                 "severity": "LOW",
                 "lease_key": "ML/TS/2019/00345",
                 "hours_ago": 120,
-                "description": "Survey vehicle commenced DGPS work at ML/TS/2019/00345 (Mahbubnagar Dolomite).",
+                "description": "Survey vehicle TS 15 EG 4567 commenced DGPS work at ML/TS/2019/00345 (Mahbubnagar Dolomite).",
             },
             {
                 "vehicle_key": "ND-TS-003",
@@ -782,7 +782,7 @@ class Command(BaseCommand):
                 "severity": "HIGH",
                 "lease_key": "ML/TS/2016/00089",
                 "hours_ago": 144,
-                "description": "Enforcement vehicle detected at EXPIRED lease ML/TS/2016/00089 without prior authorization.",
+                "description": "Enforcement vehicle TG05T8099 detected at EXPIRED lease ML/TS/2016/00089 without prior authorization.",
             },
             {
                 "vehicle_key": "ND-TS-005",

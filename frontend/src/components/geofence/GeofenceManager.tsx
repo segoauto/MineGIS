@@ -690,15 +690,15 @@ export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: Geofence
       alert_type: eventType === 'ENTRY' ? 'GEOFENCE_ENTRY' : 'GEOFENCE_EXIT',
       alert_type_display:
         eventType === 'ENTRY'
-          ? `Vehicle Entered Mining Zone (${targetGeofence.name})`
-          : `Vehicle Exited Mining Zone (${targetGeofence.name})`,
+          ? `Vehicle ${veh.vehicle_number}: Entered Mining Zone (${targetGeofence.name})`
+          : `Vehicle ${veh.vehicle_number}: Exited Mining Zone (${targetGeofence.name})`,
       severity: eventType === 'ENTRY' ? 'MEDIUM' : 'LOW',
       alert_lon: veh.last_lon,
       alert_lat: veh.last_lat,
       lease_id: targetGeofence.id,
       mine_name: targetGeofence.name,
       timestamp: new Date().toISOString(),
-      description: `Telematics Cloud Event: ${veh.vehicle_number} [${eventType}] in ${targetGeofence.name}. Alert delivered to ${veh.assigned_district} DMO & State DMG HQ.`,
+      description: `Telematics Cloud Event: Vehicle ${veh.vehicle_number} [${eventType}] in ${targetGeofence.name}. Alert delivered to ${veh.assigned_district} DMO & State DMG HQ.`,
       is_resolved: false,
       resolved_by_name: null,
       resolved_at: null,
@@ -739,11 +739,11 @@ export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: Geofence
           </div>
           <div className="flex-1 text-xs">
             <div className="font-bold flex items-center justify-between">
-              <span className="font-mono text-white text-sm">{veh.vehicle_number}</span>
-              <span className="text-[10px] text-slate-400">{newAlert.speedKmh} km/h</span>
+              <span className="font-mono text-amber-300 font-extrabold text-sm">Vehicle {veh.vehicle_number}</span>
+              <span className="text-[10px] text-slate-400 font-mono">{newAlert.speedKmh} km/h</span>
             </div>
             <div className="text-slate-300 mt-0.5">
-              {eventType === 'ENTRY' ? 'Entered' : 'Departed'} <strong>{targetGeofence.name}</strong>
+              Vehicle <strong className="text-white font-mono">{veh.vehicle_number}</strong> {eventType === 'ENTRY' ? 'entered' : 'departed'} <strong>{targetGeofence.name}</strong>
             </div>
             <div className="mt-2 pt-2 border-t border-slate-800 space-y-1 text-[11px]">
               <div className="flex items-center gap-1.5 text-amber-300 font-semibold">

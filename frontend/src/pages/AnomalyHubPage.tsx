@@ -372,7 +372,7 @@ export default function AnomalyHubPage({ embed = false }: { embed?: boolean }) {
           <button
             onClick={() => {
               triggerGeofenceBreachDemo()
-              toast.success('Simulated live geofence trespass alert dispatched!', { icon: '🚨' })
+              toast.success('Simulated live geofence trespass alert dispatched for Vehicle TG07U1889!', { icon: '🚨' })
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer"
             title="Simulate immediate vehicle geofence trespass breach"

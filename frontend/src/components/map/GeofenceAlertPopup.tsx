@@ -111,7 +111,7 @@ export default function GeofenceAlertPopup() {
 
   const handleAcknowledge = () => {
     setActiveGeofenceAlertPopup(null)
-    toast.success(`Geofence violation on ${alert.vehicleNumber} acknowledged and logged into DMG central enforcement ledger.`, {
+    toast.success(`Geofence violation on Vehicle ${alert.vehicleNumber} acknowledged and logged into DMG central enforcement ledger.`, {
       icon: '🛡️',
       duration: 4000,
       style: { background: '#0F172A', color: '#F8FAFC', border: '1px solid #334155' }
@@ -119,7 +119,7 @@ export default function GeofenceAlertPopup() {
   }
 
   const handleDispatchSquad = () => {
-    toast.error(`🚨 Rapid Flying Squad dispatched to ${alert.vehicleNumber} at ${alert.lat.toFixed(4)}°N, ${alert.lon.toFixed(4)}°E!`, {
+    toast.error(`🚨 Rapid Flying Squad dispatched to Vehicle ${alert.vehicleNumber} at ${alert.lat.toFixed(4)}°N, ${alert.lon.toFixed(4)}°E!`, {
       duration: 5000,
       style: { background: '#7F1D1D', color: '#FEE2E2', border: '2px solid #EF4444' }
     })
@@ -143,17 +143,23 @@ export default function GeofenceAlertPopup() {
                 <Siren size={20} className="text-white drop-shadow" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-black tracking-widest uppercase bg-black/40 px-2 py-0.5 rounded border border-white/30 text-amber-200">
                     CRITICAL GEOFENCE VIOLATION
+                  </span>
+                  <span className="bg-amber-400 text-slate-950 font-mono text-[11px] font-black px-2 py-0.5 rounded shadow-sm">
+                    {alert.vehicleNumber}
                   </span>
                   <span className="flex items-center gap-1 text-[11px] font-mono text-white/90">
                     <Radio size={12} className="animate-ping text-emerald-300" />
                     LIVE TELEMETRY
                   </span>
                 </div>
-                <h3 className="text-sm font-black tracking-wide text-white drop-shadow mt-0.5">
-                  {isEntry ? 'UNAUTHORIZED GEOFENCE ENTRY / TRESPASS' : 'UNAUTHORIZED ROUTE / ZONE DEVIATION'}
+                <h3 className="text-sm font-black tracking-wide text-white drop-shadow mt-1 flex items-center gap-2 flex-wrap">
+                  <span>{isEntry ? 'UNAUTHORIZED GEOFENCE ENTRY / TRESPASS' : 'UNAUTHORIZED ROUTE / ZONE DEVIATION'}</span>
+                  <span className="bg-black/60 px-2 py-0.5 rounded font-mono text-amber-300 text-xs border border-amber-400/50">
+                    [{alert.vehicleNumber}]
+                  </span>
                 </h3>
               </div>
             </div>
