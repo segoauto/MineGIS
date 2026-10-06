@@ -5,7 +5,7 @@ Includes daily penalty calculations and operational anomaly triggers.
 import decimal
 from celery import shared_task
 from django.utils import timezone
-from .models import ProductionRecord
+from .document_models import ProductionRecord
 from apps.notifications.models import NotificationLog
 from apps.notifications.tasks import send_sms_alert
 

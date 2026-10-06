@@ -25,9 +25,7 @@ RUN npx vite build
 # Tiny image — just contains the built dist/
 FROM alpine:3.19 AS runner
 
-WORKDIR /app
-
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/dist /dist-src
 
 # Default: copy to /dist volume mount
-CMD ["sh", "-c", "cp -r /app/dist/. /dist/ && echo '✔ Frontend built and copied.' && ls /dist"]
+CMD ["sh", "-c", "cp -r /dist-src/. /dist/ && echo '✔ Frontend built and copied.' && ls /dist"]

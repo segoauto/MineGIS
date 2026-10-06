@@ -84,7 +84,7 @@ services:
     volumes:
       - frontend_dist:/dist
     restart: "no"
-    command: ["sh", "-c", "cp -r /app/dist/. /dist/ && echo 'Build complete.'"]
+    command: ["sh", "-c", "cp -r /dist-src/. /dist/ && echo 'Build complete.'"]
 
   # ── Nginx (SSL) ───────────────────────────────────────────
   nginx:
