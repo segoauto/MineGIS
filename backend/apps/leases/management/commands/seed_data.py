@@ -912,7 +912,7 @@ class Command(BaseCommand):
                 'district': 'Telangana Statewide',
                 'is_staff': False,
                 'is_superuser': False,
-
+            },
             {
                 'username': 'districtofficer@mining.telangana.gov.in',
                 'email': 'districtofficer@mining.telangana.gov.in',
