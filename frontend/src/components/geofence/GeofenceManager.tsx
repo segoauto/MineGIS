@@ -531,10 +531,94 @@ export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: Geofence
     setNewZoneName('')
     // Clear drawn state so subsequent creations don't reuse by accident
     setDrawnGeofenceGeoJSON(null)
-    toast.success(`Geofence "${newZone.name}" activated! Registered with Telematics Cloud.`, {
-      icon: '🛡️',
-      style: { background: '#064E3B', color: '#ECFDF5' },
+
+    const alertLon = geomMethod === 'BUFFER' ? centerLng : (points[0]?.lng ?? 78.4867)
+    const alertLat = geomMethod === 'BUFFER' ? centerLat : (points[0]?.lat ?? 17.3850)
+
+    // 1. Dispatch real-time geofence live alert into the surveillance feed
+    const newActivationAlert: GeofenceLiveAlert = {
+      id: `ALR-GEOF-${Math.floor(1000 + Math.random() * 9000)}`,
+      timestamp: 'Just now',
+      eventType: 'ENTRY',
+      vehicleNumber: 'SURVEILLANCE-RADAR',
+      vehicleType: 'Boundary Sentinel',
+      driverName: 'Automated Geofence Grid',
+      zoneId: newZone.id,
+      zoneName: newZone.name,
+      district: newZone.district,
+      speedKmh: newZone.speedLimitKmh || 40,
+      districtAuthorityNotified: `${newZone.district} DMO & Regional Vigilance Squad alerted`,
+      stateAuthorityNotified: 'Director of Mines & Geology (Central State Surveillance Ledger)',
+      status: 'DELIVERED',
+      netradyneDevice: netradyneFleetName,
+    }
+    setLiveAlerts((prev) => [newActivationAlert, ...prev])
+
+    // 2. Dispatch to global vehicle alerts ledger and notification counter
+    addVehicleAlert({
+      id: Date.now(),
+      vehicle_number: 'PERIMETER-ONLINE',
+      driver_name: 'Geofence Engine',
+      alert_type: 'GEOFENCE_ENTRY',
+      alert_type_display: `Geofence Perimeter Activated: ${newZone.name}`,
+      severity: 'HIGH',
+      alert_lon: alertLon,
+      alert_lat: alertLat,
+      lease_id: newZone.id,
+      mine_name: newZone.name,
+      timestamp: new Date().toISOString(),
+      description: `Active Perimeter Established: "${newZone.name}" (${newZone.coordinatesSummary}). Speed limit: ${newZone.speedLimitKmh} km/h. Real-time telemetry breach alerts enabled for ${newZone.district}.`,
+      is_resolved: false,
+      resolved_by_name: null,
+      resolved_at: null,
     })
+
+    // 3. Trigger tactical map alert popup
+    useMapStore.getState().setActiveGeofenceAlertPopup({
+      id: Date.now(),
+      vehicleNumber: `SURVEILLANCE-${newZone.id}`,
+      driverName: 'Perimeter Activated',
+      eventType: 'ENTRY',
+      zoneName: newZone.name,
+      zoneType: newZone.typeDisplay,
+      district: newZone.district,
+      speedKmh: newZone.speedLimitKmh || 40,
+      timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      lon: alertLon,
+      lat: alertLat,
+      severity: 'CRITICAL',
+    })
+
+    // 4. Instant custom alert toast banner
+    toast.custom((t) => (
+      <div
+        className={clsx(
+          'max-w-md w-full bg-slate-900 border-2 border-emerald-500 text-white rounded-lg shadow-2xl p-4 transition-all duration-300 pointer-events-auto',
+          t.visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+        )}
+      >
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-bold text-xs flex-shrink-0">
+            GEOFENCE ACTIVE
+          </div>
+          <div className="flex-1 text-xs">
+            <div className="font-bold flex items-center justify-between">
+              <span className="font-mono text-white text-sm">{newZone.name}</span>
+              <span className="text-[10px] text-emerald-400 font-semibold">RADAR ARMED</span>
+            </div>
+            <div className="text-slate-300 mt-0.5">
+              Perimeter established with 24/7 automated telematics &amp; speed radar monitoring ({newZone.speedLimitKmh} km/h).
+            </div>
+            <div className="mt-2 pt-2 border-t border-slate-800 space-y-1 text-[11px]">
+              <div className="flex items-center gap-1.5 text-emerald-300 font-semibold">
+                <CheckCircle2 size={12} className="text-emerald-400" />
+                <span>{newZone.district} Mining Officer (DMO) Surveillance Alert Dispatched</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    ), { duration: 6000 })
   }
 
   // Live simulation of vehicle entering or leaving mining zone
