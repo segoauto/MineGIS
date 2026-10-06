@@ -184,9 +184,8 @@ class VehicleViewSet(viewsets.ReadOnlyModelViewSet):
             'telemetry': {
                 'speed_kmh': vehicle.current_speed_kmh,
                 'heading_deg': vehicle.current_heading,
-                'lat': vehicle.last_lat,
-                'lon': vehicle.last_lon,
-                'odometer_km': vehicle.odometer,
+                'lat': vehicle.last_location.y if vehicle.last_location else 16.5062,
+                'lon': vehicle.last_location.x if vehicle.last_location else 77.5145,
                 'engine_on': vehicle.engine_on,
                 'driver_name': vehicle.driver_name,
                 'assigned_district': vehicle.assigned_district,
