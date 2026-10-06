@@ -20,7 +20,6 @@ const BASE_LAYERS: { id: BaseLayerType; label: string; icon: React.ElementType }
   { id: 'osm',         label: 'Streets',    icon: Map       },
   { id: 'satellite',   label: 'Satellite',  icon: Satellite },
   { id: 'terrain',     label: 'Topo',       icon: Mountain  },
-  { id: 'carto_light', label: 'Light',      icon: Layers    },
 ]
 
 export default function TopBar() {

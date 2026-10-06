@@ -190,6 +190,17 @@ export default function VehicleOverlays({ map }: { map: OlMap }) {
       document.head.appendChild(style)
     }
 
+    if (!vehiclesVisible) {
+      if (overlaysRef.current.size > 0) {
+        overlaysRef.current.forEach((entry) => {
+          map.removeOverlay(entry.overlay)
+        })
+        overlaysRef.current.clear()
+        setForceRender((prev) => prev + 1)
+      }
+      return
+    }
+
     const currentIds = new Set(vehicles.map((v) => v.id))
     let changed = false
 
@@ -233,7 +244,7 @@ export default function VehicleOverlays({ map }: { map: OlMap }) {
     if (changed) {
       setForceRender((prev) => prev + 1)
     }
-  }, [vehicles, map])
+  }, [vehicles, vehiclesVisible, map])
 
   if (!map || !vehiclesVisible) return null
 

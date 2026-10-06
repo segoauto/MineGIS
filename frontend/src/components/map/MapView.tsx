@@ -316,15 +316,33 @@ export default function MapView() {
         style={{ background: '#F1F5F9', cursor: drawBoundaryMode ? 'crosshair' : undefined }}
       />
       
-      {/* Geofence Breach Tactical Test Button */}
-      <div className="absolute top-3 left-3 z-30 flex items-center gap-2">
+      {/* Map Zoom In (+) / Zoom Out (-) Controls */}
+      <div className="absolute top-4 left-4 z-20 flex flex-col rounded-lg bg-white/95 backdrop-blur-xs border border-slate-300 shadow-md overflow-hidden">
         <button
-          onClick={() => triggerGeofenceBreachDemo()}
-          className="flex items-center gap-2 px-3 py-1.5 bg-red-700/90 hover:bg-red-600 text-white rounded-lg text-xs font-black shadow-xl border border-red-500/50 backdrop-blur transition-all hover:scale-105 active:scale-95"
-          title="Simulate Real-Time Geofence Trespassing Alert on Map"
+          onClick={() => {
+            if (mapRef.current) {
+              const view = mapRef.current.getView()
+              view.animate({ zoom: (view.getZoom() ?? 8) + 1, duration: 200 })
+            }
+          }}
+          className="w-8 h-8 flex items-center justify-center text-slate-800 hover:bg-slate-100 hover:text-gov-700 font-extrabold text-lg transition-colors border-b border-slate-200 select-none cursor-pointer"
+          title="Zoom In (+)"
+          aria-label="Zoom in"
         >
-          <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-          <span>⚠️ Simulate Geofence Breach</span>
+          +
+        </button>
+        <button
+          onClick={() => {
+            if (mapRef.current) {
+              const view = mapRef.current.getView()
+              view.animate({ zoom: (view.getZoom() ?? 8) - 1, duration: 200 })
+            }
+          }}
+          className="w-8 h-8 flex items-center justify-center text-slate-800 hover:bg-slate-100 hover:text-gov-700 font-extrabold text-lg transition-colors select-none cursor-pointer"
+          title="Zoom Out (−)"
+          aria-label="Zoom out"
+        >
+          −
         </button>
       </div>
 

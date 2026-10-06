@@ -115,6 +115,7 @@ interface MapStore {
   removeBookmark: (id: string) => void
 
   setVehicles: (vehicles: Vehicle[]) => void
+  setVehiclesVisible: (visible: boolean) => void
   toggleVehiclesVisible: () => void
   selectVehicle: (id: number | null) => void
   addVehicleAlert: (alert: VehicleAlert) => void
@@ -391,7 +392,7 @@ export const useMapStore = create<MapStore>()(
       bookmarks: [],
 
       vehicles: REAL_NETRADYNE_VEHICLES,
-      vehiclesVisible: true,
+      vehiclesVisible: false,
       selectedVehicleId: null,
       vehicleAlerts: INITIAL_VEHICLE_ALERTS,
       unreadAlertCount: 4,
@@ -405,7 +406,7 @@ export const useMapStore = create<MapStore>()(
 
       leaseInfoPanelOpen: false,
       vehicleTrackingPanelOpen: false,
-      layerPanelOpen: true,
+      layerPanelOpen: false,
       drawnPointCoords: null,
       reportModalOpen: false,
       compareImageryOpen: false,
@@ -466,6 +467,7 @@ export const useMapStore = create<MapStore>()(
         set((state) => ({ bookmarks: state.bookmarks.filter((b) => b.id !== id) })),
 
       setVehicles: (vehicles) => set({ vehicles }),
+      setVehiclesVisible: (vehiclesVisible) => set({ vehiclesVisible }),
       toggleVehiclesVisible: () => set((state) => ({ vehiclesVisible: !state.vehiclesVisible })),
       selectVehicle: (selectedVehicleId) => set({ selectedVehicleId }),
 

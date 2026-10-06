@@ -49,6 +49,8 @@ export default function PortalLayout() {
     bulkUploadModalOpen,
     setBulkUploadModalOpen,
     triggerMapRefresh,
+    vehiclesVisible,
+    setVehiclesVisible,
   } = useMapStore()
 
   const location = useLocation()
@@ -241,17 +243,21 @@ export default function PortalLayout() {
                 </button>
 
                 <button
-                  onClick={() => setVehicleTrackingPanelOpen(!vehicleTrackingPanelOpen)}
+                  onClick={() => {
+                    const next = !vehiclesVisible
+                    setVehiclesVisible(next)
+                    setVehicleTrackingPanelOpen(next)
+                  }}
                   className={clsx(
                     'flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all',
-                    vehicleTrackingPanelOpen
+                    vehiclesVisible
                       ? 'bg-gov-600 text-white shadow-2xs'
                       : 'text-slate-700 hover:bg-slate-100'
                   )}
-                  title="Show/hide live truck tracking"
+                  title={vehiclesVisible ? 'Hide trucks from map' : 'Show live trucks on map'}
                 >
                   <Truck size={14} />
-                  <span>Live Trucks</span>
+                  <span>Trucks</span>
                 </button>
 
                 <button
