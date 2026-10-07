@@ -200,51 +200,59 @@ export default function MapSwipeWidget({ mainMap, onClose }: MapSwipeWidgetProps
       {/* ── SVG Filters for Authentic False-Color Spectral Indices ── */}
       <svg style={{ position: 'absolute', width: 0, height: 0 }} aria-hidden="true">
         <defs>
-          {/* NDVI Spectral Color Ramp: Mine Pits (Red) -> Degraded (Amber) -> Canopy (Emerald Green) */}
+          {/* NDVI Spectral Color Difference Matrix:
+              Vegetation (G > R) -> Rich Emerald/Lush Green
+              Mine Pits, Quarries, Overburden & Bare Rock (R > G) -> Vivid Crimson Red / Hot Orange
+              Water bodies & Reservoirs -> Deep Navy Blue */}
           <filter id="swipe-ndvi-filter" colorInterpolationFilters="sRGB">
             <feColorMatrix
               type="matrix"
               values="
-                0.2126 0.7152 0.0722 0 0
-                0.2126 0.7152 0.0722 0 0
-                0.2126 0.7152 0.0722 0 0
-                0      0      0      1 0
+                2.6  -1.5  -0.2  0  0.05
+               -1.3   2.8  -0.3  0  0.05
+               -0.9  -0.9   2.4  0  0.00
+                0     0     0    1  0
               "
             />
             <feComponentTransfer>
-              <feFuncR type="table" tableValues="0.08 0.20 0.95 0.98 0.90 0.50 0.10 0.05" />
-              <feFuncG type="table" tableValues="0.12 0.25 0.15 0.40 0.85 0.95 0.75 0.48" />
-              <feFuncB type="table" tableValues="0.30 0.45 0.08 0.05 0.08 0.15 0.18 0.10" />
+              <feFuncR type="linear" slope="1.2" intercept="-0.02" />
+              <feFuncG type="linear" slope="1.3" intercept="-0.02" />
+              <feFuncB type="linear" slope="1.1" intercept="-0.02" />
             </feComponentTransfer>
           </filter>
 
-          {/* NDWI / Water Index Color Ramp: Dry Bedrock (Rust) -> Water Retention / Sump Pits (Electric Cyan/Blue) */}
+          {/* NDWI / Water Index Color Ramp:
+              Water, Sump Pits & Canals -> Brilliant Cyan / Electric Blue
+              Dry Bedrock & Excavation Pits -> Warm Earth Ochre / Rust */}
           <filter id="swipe-wi-filter" colorInterpolationFilters="sRGB">
             <feColorMatrix
               type="matrix"
               values="
-                0.2126 0.7152 0.0722 0 0
-                0.2126 0.7152 0.0722 0 0
-                0.2126 0.7152 0.0722 0 0
-                0      0      0      1 0
+                1.1  -0.3  -0.3  0  0.10
+               -0.2   1.3  -0.1  0  0.05
+               -1.4  -1.2   3.6  0  0.00
+                0     0     0    1  0
               "
             />
             <feComponentTransfer>
-              <feFuncR type="table" tableValues="0.60 0.75 0.70 0.45 0.18 0.05 0.02 0.00" />
-              <feFuncG type="table" tableValues="0.35 0.50 0.55 0.65 0.80 0.90 0.75 0.55" />
-              <feFuncB type="table" tableValues="0.12 0.18 0.32 0.70 0.95 1.00 0.98 0.90" />
+              <feFuncR type="linear" slope="1.1" intercept="0" />
+              <feFuncG type="linear" slope="1.2" intercept="0" />
+              <feFuncB type="linear" slope="1.4" intercept="-0.05" />
             </feComponentTransfer>
           </filter>
 
-          {/* Color Infrared CIR (Bands 8-4-3): Vegetation (Ruby Red), Mine Pits & Rock (Cyan/White), Water (Black) */}
+          {/* Color Infrared CIR (Bands 8-4-3):
+              Photosynthetic Canopy -> Radiant Ruby Red / Crimson
+              Mine Pits, Quarries, Sand & Granite -> Crisp Cyan / White
+              Water -> Deep Navy / Black */}
           <filter id="swipe-cir-filter" colorInterpolationFilters="sRGB">
             <feColorMatrix
               type="matrix"
               values="
-                0.15 1.90 0.10 0 0
-                0.75 0.15 0.10 0 0
-                0.10 0.10 1.25 0 0
-                0    0    0    1 0
+               -0.2   2.3  -0.1  0  0.05
+                1.9  -0.2  -0.1  0  0.05
+               -0.6  -0.6   2.2  0  0.00
+                0     0     0    1  0
               "
             />
           </filter>
@@ -254,13 +262,13 @@ export default function MapSwipeWidget({ mainMap, onClose }: MapSwipeWidgetProps
       {/* Embedded CSS for Filter Classes */}
       <style>{`
         .spectral-ndvi-tiles {
-          filter: url(#swipe-ndvi-filter) saturate(1.8) contrast(1.2);
+          filter: url(#swipe-ndvi-filter) saturate(1.4) contrast(1.15);
         }
         .spectral-wi-tiles {
-          filter: url(#swipe-wi-filter) saturate(1.9) contrast(1.25);
+          filter: url(#swipe-wi-filter) saturate(1.5) contrast(1.2);
         }
         .spectral-cir-tiles {
-          filter: url(#swipe-cir-filter) saturate(1.8) contrast(1.15);
+          filter: url(#swipe-cir-filter) saturate(1.5) contrast(1.15);
         }
       `}</style>
 
