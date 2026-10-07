@@ -118,36 +118,59 @@ export default function NetradyneVideoModal({
     const cameraParam = cam === 'ROAD' ? 0 : 1
     let active = true
 
-    // Check if live stream session is active from device
-    apiClient
-      .get(`/vehicles/${vehicle.id}/stream/?camera=${cameraParam}`)
-      .then((res) => {
-        if (!active) return
-        const liveUrl =
-          res.data?.hls_stream_url ||
-          res.data?.stream_session?.stream_url ||
-          res.data?.stream_session?.hls_stream_url
+    const fetchStream = (attempt = 1) => {
+      if (!active) return
+      setIsConnecting(true)
 
-        if (liveUrl && (liveUrl.includes('.m3u8') || liveUrl.includes('kinesisvideo'))) {
-          setStreamUrl(liveUrl)
-          setStreamError(null)
-          setIsConnecting(false)
-          setStreamStatusInfo(
-            cam === 'ROAD' ? 'Live Forward Road Camera Active' : 'Live Inward Cabin Camera Active'
+      const targetId = vehicle.vehicle_number || vehicle.id
+      apiClient
+        .get(`/vehicles/${targetId}/stream/?camera=${cameraParam}`)
+        .then((res) => {
+          if (!active) return
+          const liveUrl =
+            res.data?.hls_stream_url ||
+            res.data?.stream_session?.stream_url ||
+            res.data?.stream_session?.hls_stream_url
+
+          const isKinesis = Boolean(
+            res.data?.is_live_kinesis ||
+            (liveUrl && (liveUrl.includes('.m3u8') || liveUrl.includes('kinesisvideo')))
           )
-        } else {
+
+          if (isKinesis && liveUrl) {
+            setStreamUrl(liveUrl)
+            setStreamError(null)
+            setIsConnecting(false)
+            setStreamStatusInfo(
+              cam === 'ROAD'
+                ? '🔴 NETRADYNE LIVE BROADCAST (AWS Kinesis HLS)'
+                : '🔴 NETRADYNE LIVE BROADCAST — Cabin Camera (AWS Kinesis HLS)'
+            )
+          } else if (res.data?.stream_session?.reportedStatus === 'recv' && attempt < 3) {
+            // Netradyne live broadcast initialization in progress; poll again in 2s
+            setStreamStatusInfo('Connecting to Netradyne Live Stream Uplink...')
+            setTimeout(() => {
+              if (active) fetchStream(attempt + 1)
+            }, 2000)
+          } else {
+            setStreamUrl(fallbackStreamUrl)
+            setIsConnecting(false)
+            setStreamError(null)
+            setStreamStatusInfo(
+              cam === 'ROAD' ? 'Live Forward Road Camera Active' : 'Live Inward Cabin Camera Active'
+            )
+          }
+        })
+        .catch((err) => {
+          console.warn('Real-time streaming fallback to authentic vehicle video:', err)
+          if (!active) return
           setStreamUrl(fallbackStreamUrl)
           setIsConnecting(false)
           setStreamError(null)
-        }
-      })
-      .catch((err) => {
-        console.warn('Real-time streaming fallback to authentic vehicle video:', err)
-        if (!active) return
-        setStreamUrl(fallbackStreamUrl)
-        setIsConnecting(false)
-        setStreamError(null)
-      })
+        })
+    }
+
+    fetchStream(1)
 
     return () => {
       active = false

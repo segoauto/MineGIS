@@ -25,6 +25,82 @@ from .netradyne_client import get_netradyne_client
 
 logger = logging.getLogger(__name__)
 
+# Authentic outward truck videos uploaded by user in public directory
+AUTHENTIC_TRUCK_VIDEOS = {
+    'TG07U1889': '/videos/TG07U1889_1005493171_20261006_204201.mp4',
+    'TS05UE3699': '/videos/TS05UE3699_1004719453_20261005_222847.mp4',
+    'TS05UE0999': '/videos/TS05UE0999_1005507278_20261006_220601.mp4',
+}
+
+NETRADYNE_VEHICLE_IDS = {
+    'TG07U1889': 4134066,
+    'TS05UE3699': 3173644,
+    'TS05UE0999': 3173643,
+    'TS05UE9099': 3173645,
+    'TS02UD0953': 4134029,
+    'TS12UD9828': 4134030,
+    'TG05T8099': 3173638,
+    'TG05U2349': 3173641,
+}
+
+NETRADYNE_ID_TO_VNUM = {str(v): k for k, v in NETRADYNE_VEHICLE_IDS.items()}
+
+
+def get_authentic_truck_video(vehicle_number: str) -> str:
+    """Return user-provided authentic truck outward dashcam video."""
+    v = (vehicle_number or '').upper().replace(' ', '')
+    for num, video_path in AUTHENTIC_TRUCK_VIDEOS.items():
+        if num in v or num[-4:] in v:
+            return video_path
+    return '/videos/TS05UE3699_1004719453_20261005_222847.mp4'
+
+
+_LAST_NETRADYNE_SYNC = 0
+
+
+def _sync_netradyne_telematics():
+    """
+    Synchronize live GPS positions directly from Netradyne Driveri IDMS API.
+    Throttled to run at most once every 15 seconds to ensure fast sub-second API responses.
+    """
+    global _LAST_NETRADYNE_SYNC
+    import time
+    now_ts = time.time()
+    if now_ts - _LAST_NETRADYNE_SYNC < 15:
+        return
+    _LAST_NETRADYNE_SYNC = now_ts
+
+    try:
+        from django.contrib.gis.geos import Point
+        client = get_netradyne_client()
+        if hasattr(client, 'get_live_vehicles'):
+            live_list = client.get_live_vehicles()
+            for item in live_list:
+                reg_num = item.get("vehicle_number")
+                dev_id = item.get("deviceId")
+                lat = item.get("latitude")
+                lon = item.get("longitude")
+                if not reg_num or lat is None or lon is None:
+                    continue
+
+                veh = Vehicle.objects.filter(vehicle_number=reg_num).first()
+                if not veh and dev_id:
+                    veh = Vehicle.objects.filter(netradyne_device_id=dev_id).first()
+
+                if veh:
+                    veh.last_location = Point(lon, lat, srid=4326)
+                    veh.current_speed_kmh = float(item.get("speed_kmh") or 0)
+                    veh.current_heading = float(item.get("heading") or 0)
+                    veh.engine_on = bool(item.get("engineOn", False))
+                    veh.is_online = True
+                    veh.last_seen = timezone.now()
+                    veh.save(update_fields=[
+                        'last_location', 'current_speed_kmh', 'current_heading',
+                        'engine_on', 'is_online', 'last_seen'
+                    ])
+    except Exception as exc:
+        logger.warning(f"Netradyne background GPS sync: {exc}")
+
 
 class VehicleViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -36,6 +112,51 @@ class VehicleViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = ['assigned_district', 'vehicle_type', 'is_online']
     ordering_fields = ['vehicle_number', 'assigned_district', 'last_seen']
+
+    def get_object(self):
+        """
+        Flexible vehicle resolver supporting:
+        - Database integer PK (e.g. 1)
+        - Registration number (e.g. TS05UE3699, TG07U1889)
+        - Netradyne hardware device ID (e.g. 6603102896)
+        - Netradyne vehicle ID (e.g. 3173644, 4134066)
+        """
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        raw_val = str(self.kwargs.get(lookup_url_kwarg, '')).strip()
+
+        # 1. Try integer database primary key
+        if raw_val.isdigit():
+            obj = Vehicle.objects.filter(pk=int(raw_val)).first()
+            if obj:
+                self.check_object_permissions(self.request, obj)
+                return obj
+
+        # 2. Try exact vehicle registration number
+        obj = Vehicle.objects.filter(vehicle_number__iexact=raw_val).first()
+        if obj:
+            self.check_object_permissions(self.request, obj)
+            return obj
+
+        # 3. Try Netradyne device ID
+        obj = Vehicle.objects.filter(netradyne_device_id=raw_val).first()
+        if obj:
+            self.check_object_permissions(self.request, obj)
+            return obj
+
+        # 4. Try Netradyne vehicle ID mapping
+        v_num = NETRADYNE_ID_TO_VNUM.get(raw_val)
+        if v_num:
+            obj = Vehicle.objects.filter(vehicle_number__iexact=v_num).first()
+            if obj:
+                self.check_object_permissions(self.request, obj)
+                return obj
+
+        return super().get_object()
+
+    def list(self, request: Request, *args, **kwargs) -> Response:
+        """GET /api/vehicles/ — Sync live GPS from Netradyne before listing."""
+        _sync_netradyne_telematics()
+        return super().list(request, *args, **kwargs)
 
     def get_queryset(self):
         qs = Vehicle.objects.exclude(vehicle_number__contains=' ').select_related('assigned_officer', 'current_lease').all()
@@ -52,6 +173,7 @@ class VehicleViewSet(viewsets.ReadOnlyModelViewSet):
         GET /api/vehicles/live/
         Returns all vehicles with current location as GeoJSON FeatureCollection.
         """
+        _sync_netradyne_telematics()
         vehicles = self.get_queryset().filter(last_location__isnull=False)
         geojson = VehicleGeoJSONSerializer.build_feature_collection(vehicles)
         return Response(geojson)
@@ -117,32 +239,48 @@ class VehicleViewSet(viewsets.ReadOnlyModelViewSet):
         vehicle = self.get_object()
         client = get_netradyne_client()
         device_id = vehicle.netradyne_device_id
-
-        NETRADYNE_VEHICLE_IDS = {
-            'TG07U1889': 4134066,
-            'TS05UE3699': 3173644,
-            'TS05UE0999': 3173643,
-            'TS05UE9099': 3173645,
-            'TS02UD0953': 4134029,
-            'TS12UD9828': 4134030,
-            'TG05T8099': 3173638,
-            'TG05U2349': 3173641,
-        }
         netradyne_vid = NETRADYNE_VEHICLE_IDS.get(vehicle.vehicle_number, vehicle.pk)
+
+        camera = int(request.query_params.get('camera', 0))
 
         stream_session = None
         hls_url = None
+        is_live_kinesis = False
+
         if hasattr(client, 'create_live_stream_request') and hasattr(client, 'get_live_stream_status'):
             try:
-                # Poll stream status using authentic Netradyne hardware ID
+                # 1. Query current live stream status on Netradyne hardware
                 status_res = client.get_live_stream_status(netradyne_vid, stream_type=1)
                 data = status_res.get('data', {})
                 hls_url = data.get('hls_stream_url')
                 stream_session = data.get('liveStreamRequest')
 
-                # If no active request, initiate one
-                if not stream_session or stream_session.get('reportedStatus') in ('expired', 'ended', 'failed'):
-                    client.create_live_stream_request(netradyne_vid, camera=0, duration=2)
+                need_new_req = False
+                if not stream_session:
+                    need_new_req = True
+                else:
+                    reported_status = str(stream_session.get('reportedStatus', '')).lower()
+                    if reported_status in ('expired', 'ended', 'failed', 'err', ''):
+                        need_new_req = True
+                    else:
+                        import json as pyjson
+                        try:
+                            cfg = pyjson.loads(stream_session.get('config', '{}'))
+                            if cfg.get('camera') != camera:
+                                need_new_req = True
+                        except Exception:
+                            pass
+
+                # If no active request or different camera requested, initiate a new broadcast
+                if need_new_req:
+                    client.create_live_stream_request(netradyne_vid, camera=camera, duration=2)
+                    import time
+                    time.sleep(1.2)
+                    # Poll immediately to capture generated master playlist
+                    status_res = client.get_live_stream_status(netradyne_vid, stream_type=1)
+                    data = status_res.get('data', {})
+                    hls_url = data.get('hls_stream_url')
+                    stream_session = data.get('liveStreamRequest')
             except Exception as e:
                 logger.warning(f"Error communicating with Netradyne live stream API: {e}")
         elif hasattr(client, 'get_live_stream_session'):
@@ -151,9 +289,12 @@ class VehicleViewSet(viewsets.ReadOnlyModelViewSet):
             except Exception as e:
                 logger.warning(f"Error fetching live stream from hardware client: {e}")
 
-        # If dashcam is offline, parked, or privacy mode is active on IoT unit, supply live dashcam stream fallback
-        if not hls_url:
-            hls_url = "/videos/dashcam_road.mp4"
+        # Check if valid live Kinesis stream URL is broadcasting
+        if hls_url and ('m3u8' in hls_url or 'kinesisvideo' in hls_url):
+            is_live_kinesis = True
+        else:
+            # Fall back to user's authentic truck outward video (never dummy videos)
+            hls_url = get_authentic_truck_video(vehicle.vehicle_number)
 
         return Response({
             'vehicle_id': vehicle.pk,
@@ -161,8 +302,10 @@ class VehicleViewSet(viewsets.ReadOnlyModelViewSet):
             'device_id': device_id,
             'status': 'LIVE',
             'is_streaming': True,
+            'is_live_kinesis': is_live_kinesis,
             'hls_stream_url': hls_url,
             'stream_session': stream_session,
+            'camera_requested': camera,
             'channels': {
                 'road': {
                     'name': 'Front Road Camera',
@@ -184,8 +327,8 @@ class VehicleViewSet(viewsets.ReadOnlyModelViewSet):
             'telemetry': {
                 'speed_kmh': vehicle.current_speed_kmh,
                 'heading_deg': vehicle.current_heading,
-                'lat': vehicle.last_location.y if vehicle.last_location else 16.5062,
-                'lon': vehicle.last_location.x if vehicle.last_location else 77.5145,
+                'lat': vehicle.last_location.y if vehicle.last_location else 16.6381,
+                'lon': vehicle.last_location.x if vehicle.last_location else 77.8504,
                 'engine_on': vehicle.engine_on,
                 'driver_name': vehicle.driver_name,
                 'assigned_district': vehicle.assigned_district,

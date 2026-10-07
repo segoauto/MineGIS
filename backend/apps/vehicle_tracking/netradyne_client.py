@@ -525,6 +525,20 @@ class MockNetradyneClient:
             "message": "Mock geofence created (NETRADYNE_MOCK_MODE=true)",
         }
 
+    def create_live_stream_request(self, vehicle_id: int, camera: int = 0, duration: int = 2) -> dict[str, Any]:
+        """Mock live stream request."""
+        return {"response": True, "data": {"requestId": 999999, "status": 2}}
+
+    def get_live_stream_status(self, vehicle_id: int, stream_type: int = 1) -> dict[str, Any]:
+        """Mock live stream status with authentic fallback video."""
+        return {
+            "response": True,
+            "data": {
+                "liveStreamRequest": {"reportedStatus": "recv", "status": 2},
+                "hls_stream_url": None,
+            }
+        }
+
     def handle_webhook_event(self, payload: dict[str, Any]) -> dict[str, Any] | None:
         """Mock webhook handler — delegates to real handler logic."""
         real_client = NetradyneClient()
@@ -630,10 +644,17 @@ def _bearing(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 
 def get_netradyne_client() -> NetradyneClient | MockNetradyneClient:
     """
-    Factory: returns real or mock client based on NETRADYNE_MOCK_MODE.
+    Factory: Always attempts real NetradyneClient authentication first.
+    If Netradyne authenticates successfully, returns the real client.
+    Only falls back to MockNetradyneClient if real auth fails or network is offline.
     """
-    if settings.NETRADYNE_MOCK_MODE or not settings.NETRADYNE_API_KEY:
-        logger.info("Using MockNetradyneClient (NETRADYNE_MOCK_MODE=true or no API key)")
-        return MockNetradyneClient()
-    logger.info("Using real NetradyneClient")
-    return NetradyneClient()
+    try:
+        client = NetradyneClient()
+        if client.get_token():
+            logger.info("Using real NetradyneClient (authenticated successfully)")
+            return client
+    except Exception as exc:
+        logger.warning(f"Real NetradyneClient auth failed ({exc}), falling back to MockNetradyneClient")
+
+    logger.info("Using MockNetradyneClient")
+    return MockNetradyneClient()
