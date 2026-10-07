@@ -6,7 +6,6 @@ import TopBar from '../components/ui/TopBar'
 import Sidebar, { type PortalTab } from '../components/layout/Sidebar'
 import DashboardPage from './DashboardPage'
 import MapView from '../components/map/MapView'
-import Map3DView from '../components/map/Map3DView'
 import LayerPanel from '../components/map/LayerPanel'
 import SpatialToolbar from '../components/ui/SpatialToolbar'
 import TemporalSlider from '../components/ui/TemporalSlider'
@@ -29,7 +28,7 @@ import AnomalyHubPage from './AnomalyHubPage'
 import GovernancePage from './GovernancePage'
 import { getRolePermissions, isTabAllowed } from '../utils/rbac'
 import type { MiningLease, Vehicle } from '../types'
-import { Layers, Ruler, Truck, ShieldAlert, PenLine, CheckCircle2, X, Box } from 'lucide-react'
+import { Layers, Ruler, Truck, ShieldAlert, PenLine, CheckCircle2, X } from 'lucide-react'
 import clsx from 'clsx'
 
 export default function PortalLayout() {
@@ -56,8 +55,6 @@ export default function PortalLayout() {
     triggerMapRefresh,
     vehiclesVisible,
     setVehiclesVisible,
-    mapMode,
-    setMapMode,
   } = useMapStore()
 
   const location = useLocation()
@@ -197,26 +194,10 @@ export default function PortalLayout() {
           {/* 2. LIVE GIS CADASTRAL MAP VIEW */}
           {activeTab === 'map' && (
             <div className="flex-1 relative overflow-hidden bg-map-bg">
-              {/* Map Rendering (2D Cadastral or 3D Terrain Model) */}
-              {mapMode === '3D' ? <Map3DView /> : <MapView />}
+              <MapView />
 
               {/* Clean Map Tool Dock (Top-Right Pill Strip) */}
               <div className="absolute top-4 right-4 z-20 flex items-center gap-2 bg-white/95 backdrop-blur-xs border border-slate-300 rounded-lg p-1.5 shadow-md">
-                {/* 3D Map Toggle Button */}
-                <button
-                  onClick={() => setMapMode(mapMode === '3D' ? '2D' : '3D')}
-                  className={clsx(
-                    'flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all cursor-pointer',
-                    mapMode === '3D'
-                      ? 'bg-amber-500 text-slate-950 font-extrabold shadow-sm border border-amber-400'
-                      : 'text-slate-700 hover:bg-slate-100'
-                  )}
-                  title="Toggle between 2D Cadastral GIS Map and 3D Open-Cast Pit Terrain"
-                >
-                  <Box size={14} className={mapMode === '3D' ? 'text-slate-950' : 'text-amber-600'} />
-                  <span>{mapMode === '3D' ? '3D Active' : '3D Terrain'}</span>
-                </button>
-
                 <button
                   onClick={() => setLayerPanelOpen(!layerPanelOpen)}
                   className={clsx(

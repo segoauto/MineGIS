@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import {
   X, MapPin, FileText, CheckCircle2, AlertTriangle, Calendar,
   IndianRupee, Download, Printer, ShieldCheck, Building2, User,
-  Mail, Phone, ExternalLink, Map, Award, Check, Box
+  Mail, Phone, ExternalLink, Map, Award, Check
 } from 'lucide-react'
 import clsx from 'clsx'
 import toast from 'react-hot-toast'
@@ -351,19 +351,7 @@ export default function LeaseDetailsModal({
               className="px-4 py-2 bg-gov-600 hover:bg-gov-700 text-white rounded-lg font-bold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Map size={14} />
-              <span>Locate on 2D Map</span>
-            </button>
-
-            <button
-              onClick={() => {
-                onInspectOnMap(currentLease)
-                useMapStore.getState().setMapMode('3D')
-                onClose()
-              }}
-              className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg font-bold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <Box size={14} />
-              <span>Inspect 3D Terrain</span>
+              <span>Locate on GIS Map</span>
             </button>
           </div>
 

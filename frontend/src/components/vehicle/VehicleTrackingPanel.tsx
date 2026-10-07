@@ -72,18 +72,7 @@ export default function VehicleTrackingPanel() {
   }
 
   if (!vehicleTrackingPanelOpen) {
-    return (
-      <button
-        onClick={() => setVehicleTrackingPanelOpen(true)}
-        className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-white border border-slate-300 rounded-full px-4 py-2 text-slate-800 text-xs font-bold hover:bg-slate-50 transition-colors shadow-lg"
-      >
-        <Truck size={15} className="text-gov-600" />
-        <span>Mineral Transit & Fleet Tracking</span>
-        {unreadAlertCount > 0 && (
-          <span className="bg-red-600 text-white text-[10px] font-bold rounded-full px-2 py-0.5">{unreadAlertCount}</span>
-        )}
-      </button>
-    )
+    return null
   }
 
   return (
