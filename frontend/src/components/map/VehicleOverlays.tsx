@@ -3,8 +3,34 @@ import { createPortal } from 'react-dom'
 import Overlay from 'ol/Overlay'
 import { fromLonLat } from 'ol/proj'
 import type { Map as OlMap } from 'ol'
+import VectorLayer from 'ol/layer/Vector'
+import VectorSource from 'ol/source/Vector'
+import Feature from 'ol/Feature'
+import LineString from 'ol/geom/LineString'
+import { Style, Stroke } from 'ol/style'
 import { useMapStore } from '../../store'
+import { vehiclesApi } from '../../api/vehicles'
 import type { Vehicle, VehicleAlert } from '../../types'
+
+// ─── Breadcrumb trail helpers ─────────────────────────────────────────────────
+type LonLat = [number, number]
+const TRAIL_MAX_POINTS = 240 // ~2 hours at 30s sync
+const TRAIL_MAX_HOP_KM = 3
+
+function hopKm(a: LonLat, b: LonLat): number {
+  const toRad = (d: number) => (d * Math.PI) / 180
+  const dLat = toRad(b[1] - a[1])
+  const dLon = toRad(b[0] - a[0])
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a[1])) * Math.cos(toRad(b[1])) * Math.sin(dLon / 2) ** 2
+  return 2 * 6371 * Math.asin(Math.sqrt(h))
+}
+
+function trailColor(v: Vehicle, selected: boolean): [number, number, number] {
+  if (selected) return [56, 189, 248]
+  if (v.is_online && (v.current_speed_kmh ?? 0) > 0) return [16, 185, 129]
+  if (v.is_online && v.engine_on) return [245, 158, 11]
+  return [100, 116, 139]
+}
 
 // ─── Data freshness ───────────────────────────────────────────────────────────
 function dataAge(tsStr?: string | null): 'fresh' | 'recent' | 'stale' | 'offline' {
@@ -168,6 +194,79 @@ export default function VehicleOverlays({ map }: { map: OlMap }) {
   const { vehicles, vehiclesVisible, selectedVehicleId, selectVehicle, vehicleAlerts } = useMapStore()
   const overlaysRef = useRef<Map<number, { element: HTMLDivElement; overlay: Overlay }>>(new Map())
   const [, setForceRender] = useState(0)
+
+  // ── Breadcrumb trails (Netradyne-style) ──
+  const trailsRef = useRef<Map<string, LonLat[]>>(new Map())
+  const trailSourceRef = useRef(new VectorSource())
+  const [trailVersion, setTrailVersion] = useState(0)
+
+  // Mount trail layer beneath the DOM vehicle markers
+  useEffect(() => {
+    if (!map) return
+    const layer = new VectorLayer({ source: trailSourceRef.current, zIndex: 900 })
+    layer.set('name', 'vehicle-trails')
+    map.addLayer(layer)
+    return () => { map.removeLayer(layer) }
+  }, [map])
+
+  // Seed / refresh trails from backend history every 30s
+  useEffect(() => {
+    let mounted = true
+    const load = () => {
+      vehiclesApi.getTrails(TRAIL_MAX_POINTS).then((data) => {
+        if (!mounted) return
+        Object.values(data).forEach((t) => {
+          if (t?.vehicle_number && Array.isArray(t.coordinates)) {
+            trailsRef.current.set(t.vehicle_number, t.coordinates.slice(-TRAIL_MAX_POINTS))
+          }
+        })
+        setTrailVersion((n) => n + 1)
+      })
+    }
+    load()
+    const timer = setInterval(load, 30000)
+    return () => { mounted = false; clearInterval(timer) }
+  }, [])
+
+  // Extend trails live as new positions arrive (between backend refreshes)
+  useEffect(() => {
+    let changed = false
+    vehicles.forEach((v) => {
+      if (typeof v.last_lon !== 'number' || typeof v.last_lat !== 'number') return
+      const pt: LonLat = [v.last_lon, v.last_lat]
+      const trail = trailsRef.current.get(v.vehicle_number) || []
+      const last = trail[trail.length - 1]
+      if (last && last[0] === pt[0] && last[1] === pt[1]) return
+      const next = last && hopKm(last, pt) > TRAIL_MAX_HOP_KM ? [pt] : [...trail, pt]
+      trailsRef.current.set(v.vehicle_number, next.slice(-TRAIL_MAX_POINTS))
+      changed = true
+    })
+    if (changed) setTrailVersion((n) => n + 1)
+  }, [vehicles])
+
+  // Redraw trail features: fading segments (old → faint, recent → solid)
+  useEffect(() => {
+    const source = trailSourceRef.current
+    source.clear()
+    if (!vehiclesVisible) return
+    const features: Feature[] = []
+    vehicles.forEach((v) => {
+      const trail = trailsRef.current.get(v.vehicle_number)
+      if (!trail || trail.length < 2) return
+      const [r, g, b] = trailColor(v, selectedVehicleId === v.id)
+      const n = trail.length - 1
+      for (let i = 0; i < n; i++) {
+        const alpha = 0.25 + 0.75 * ((i + 1) / n)
+        const f = new Feature(new LineString([fromLonLat(trail[i]), fromLonLat(trail[i + 1])]))
+        f.setStyle([
+          new Style({ stroke: new Stroke({ color: `rgba(255,255,255,${alpha * 0.9})`, width: 7, lineCap: 'round', lineJoin: 'round' }) }),
+          new Style({ stroke: new Stroke({ color: `rgba(${r},${g},${b},${alpha})`, width: 4, lineCap: 'round', lineJoin: 'round' }) }),
+        ])
+        features.push(f)
+      }
+    })
+    source.addFeatures(features)
+  }, [trailVersion, vehicles, vehiclesVisible, selectedVehicleId])
 
   useEffect(() => {
     if (!map) return

@@ -178,6 +178,53 @@ class VehicleViewSet(viewsets.ReadOnlyModelViewSet):
         geojson = VehicleGeoJSONSerializer.build_feature_collection(vehicles)
         return Response(geojson)
 
+    @action(detail=False, methods=['get'], url_path='trails')
+    def trails(self, request: Request) -> Response:
+        """
+        GET /api/vehicles/trails/?points=240
+        Returns a recent breadcrumb trail per vehicle (like the Netradyne live map).
+
+        Points are taken in insertion order (newest first) from VehicleLocationHistory,
+        consecutive duplicates are collapsed, and the walk stops at the first implausible
+        jump (> MAX_HOP_KM between samples) so stale / synthetic history never leaks in.
+        """
+        from math import radians, sin, cos, asin, sqrt
+
+        def hop_km(a, b):
+            lon1, lat1, lon2, lat2 = map(radians, [a[0], a[1], b[0], b[1]])
+            h = sin((lat2 - lat1) / 2) ** 2 + cos(lat1) * cos(lat2) * sin((lon2 - lon1) / 2) ** 2
+            return 2 * 6371.0 * asin(sqrt(h))
+
+        MAX_HOP_KM = 3.0  # ~30s sync interval → 3 km would be >360 km/h
+        try:
+            max_points = max(10, min(int(request.query_params.get('points', 240)), 1000))
+        except ValueError:
+            max_points = 240
+
+        result = {}
+        for vehicle in self.get_queryset().filter(last_location__isnull=False):
+            current = [round(vehicle.last_location.x, 6), round(vehicle.last_location.y, 6)]
+            coords = [current]
+            rows = (
+                VehicleLocationHistory.objects
+                .filter(vehicle=vehicle)
+                .order_by('-id')
+                .values_list('location', flat=True)[:max_points]
+            )
+            for loc in rows:
+                pt = [round(loc.x, 6), round(loc.y, 6)]
+                if pt == coords[-1]:
+                    continue
+                if hop_km(coords[-1], pt) > MAX_HOP_KM:
+                    break
+                coords.append(pt)
+            coords.reverse()  # oldest → newest (ends at current position)
+            result[str(vehicle.pk)] = {
+                'vehicle_number': vehicle.vehicle_number,
+                'coordinates': coords,
+            }
+        return Response(result)
+
     @action(detail=True, methods=['get'], url_path='history')
     def history(self, request: Request, pk=None) -> Response:
         """

@@ -65,10 +65,13 @@ def sync_vehicle_locations(self):
         heading = float(v.get("heading", 0))
         engine_on = bool(v.get("engineOn") if v.get("engineOn") is not None else v.get("engine_on", True))
 
-        # Parse timestamp
+        # Parse timestamp (Netradyne returns naive UTC strings)
         if timestamp_str:
             from django.utils.dateparse import parse_datetime
+            from datetime import timezone as dt_timezone
             ts = parse_datetime(timestamp_str) or timezone.now()
+            if timezone.is_naive(ts):
+                ts = timezone.make_aware(ts, dt_timezone.utc)
         else:
             ts = timezone.now()
 

@@ -142,6 +142,15 @@ export const vehiclesApi = {
     }
   },
 
+  async getTrails(points = 240): Promise<Record<string, { vehicle_number: string; coordinates: [number, number][] }>> {
+    try {
+      const { data } = await apiClient.get('/vehicles/trails/', { params: { points } })
+      return data || {}
+    } catch {
+      return {}
+    }
+  },
+
   async getHistory(id: number, from: string, to: string): Promise<{
     vehicle_number: string
     points: VehicleLocationPoint[]
