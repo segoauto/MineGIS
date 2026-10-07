@@ -28,7 +28,7 @@ export interface ZonalOfficer {
 const TELANGANA_ZONAL_OFFICERS: ZonalOfficer[] = [
   {
     id: 'HRO-Z01',
-    name: 'Dr. K. Srinivas Rao, PhD (Geology)',
+    name: 'Joint Director (Bhadradri Zone)',
     designation: 'Joint Director of Mines & Geology',
     zone: 'Bhadradri Zone',
     headquarters: 'Kothagudem',
@@ -43,7 +43,7 @@ const TELANGANA_ZONAL_OFFICERS: ZonalOfficer[] = [
   },
   {
     id: 'HRO-Z02',
-    name: 'Smt. P. Sandhya Rani',
+    name: 'Deputy Director (Kaleshwaram Zone)',
     designation: 'Deputy Director (Enforcement & Vigilance)',
     zone: 'Kaleshwaram Zone',
     headquarters: 'Ramagundam / Peddapalli',
@@ -58,7 +58,7 @@ const TELANGANA_ZONAL_OFFICERS: ZonalOfficer[] = [
   },
   {
     id: 'HRO-Z03',
-    name: 'Sri M. Venu Gopal',
+    name: 'Assistant Director (Rajanna Zone)',
     designation: 'Assistant Director (Granite & Mineral Admin)',
     zone: 'Rajanna Zone',
     headquarters: 'Karimnagar',
@@ -73,7 +73,7 @@ const TELANGANA_ZONAL_OFFICERS: ZonalOfficer[] = [
   },
   {
     id: 'HRO-Z04',
-    name: 'Sri S. Ravinder Kumar',
+    name: 'Deputy Director (Yadadri Zone)',
     designation: 'Deputy Director (Sand Regulatory Management)',
     zone: 'Yadadri Zone',
     headquarters: 'Nalgonda',
@@ -88,7 +88,7 @@ const TELANGANA_ZONAL_OFFICERS: ZonalOfficer[] = [
   },
   {
     id: 'HRO-Z05',
-    name: 'Smt. S. Rajeshwari, M.Tech',
+    name: 'Senior Geologist (Jogulamba Zone)',
     designation: 'Senior Geologist & Flying Squad Commander',
     zone: 'Jogulamba Zone',
     headquarters: 'Mahabubnagar',
@@ -103,7 +103,7 @@ const TELANGANA_ZONAL_OFFICERS: ZonalOfficer[] = [
   },
   {
     id: 'HRO-Z06',
-    name: 'Sri K. Venkat Reddy',
+    name: 'Assistant Director (Charminar Zone)',
     designation: 'Assistant Director of Mines & Geology',
     zone: 'Charminar Zone',
     headquarters: 'Hyderabad (Directorate)',
@@ -118,7 +118,7 @@ const TELANGANA_ZONAL_OFFICERS: ZonalOfficer[] = [
   },
   {
     id: 'HRO-Z07',
-    name: 'Dr. G. Prabhakar',
+    name: 'Joint Director (Kakatiya Zone)',
     designation: 'Joint Director (IT & Geo-spatial Governance)',
     zone: 'Kakatiya Zone',
     headquarters: 'Warangal',

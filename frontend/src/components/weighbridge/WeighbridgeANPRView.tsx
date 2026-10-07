@@ -216,16 +216,543 @@ const INITIAL_WEIGHBRIDGE_DATA: WeighbridgeRecord[] = [
     status: 'CLEARED',
     gateCamera: 'CAM-02: Outbound Dispatch Gate',
   },
+  {
+    id: 'WB-009',
+    slipNumber: 'TS-WB-2026-09819',
+    timestamp: '2026-10-06 13:50:15',
+    mineName: 'Wadapally Krishna River Sand Reach',
+    district: 'Nalgonda',
+    scaleName: 'Scale #1 (Riverbank Loading Weighbridge)',
+    vehicleNumber: 'TS05UE3699',
+    driverName: 'K. Chandraiah',
+    ePermitNumber: 'eTP-TG-2026-97210',
+    mineral: 'River Sand',
+    grossWeightKg: 41200,
+    tareWeightKg: 13800,
+    netWeightKg: 27400,
+    permissibleLimitKg: 25000,
+    overloadKg: 2400,
+    anprPlateMatched: true,
+    ocrConfidence: 99.5,
+    status: 'OVERLOADED',
+    gateCamera: 'CAM-01: Riverbank Dredging Scale',
+  },
+  {
+    id: 'WB-010',
+    slipNumber: 'TS-WB-2026-09820',
+    timestamp: '2026-10-06 13:42:08',
+    mineName: 'Wadapally Krishna River Sand Reach',
+    district: 'Nalgonda',
+    scaleName: 'Scale #2 (Highway Transit Weighbridge)',
+    vehicleNumber: 'TS05UE0999',
+    driverName: 'P. Narsing Rao',
+    ePermitNumber: 'eTP-TG-2026-97190',
+    mineral: 'River Sand',
+    grossWeightKg: 36400,
+    tareWeightKg: 12800,
+    netWeightKg: 23600,
+    permissibleLimitKg: 25000,
+    overloadKg: 0,
+    anprPlateMatched: true,
+    ocrConfidence: 99.1,
+    status: 'CLEARED',
+    gateCamera: 'CAM-02: Sand Reach Exit Toll Scale',
+  },
 ]
+
+export interface MineCameraInfo {
+  camId: string
+  name: string
+  locationSubtitle: string
+  confidence: number
+  vehicleNumber: string
+  vehicleType: string
+  driverName: string
+  grossKg: number
+  netKg: number
+  tareKg: number
+  limitKg: number
+  overloadKg: number
+  status: 'CLEARED' | 'OVERLOADED' | 'PLATE_MISMATCH'
+}
+
+export const MINE_CAMERA_NETWORKS: Record<string, { mineTitle: string; district: string; cameras: MineCameraInfo[] }> = {
+  ALL: {
+    mineTitle: 'State Mining Network (Central Command)',
+    district: 'Statewide Telangana',
+    cameras: [
+      {
+        camId: 'CAM-01',
+        name: 'CAM-01: Inbound Pit Scale Gate',
+        locationSubtitle: 'Singareni OCP-IV · Ingress Scale',
+        confidence: 99.4,
+        vehicleNumber: 'TG07U1889',
+        vehicleType: '10-WHEELER COAL TIPPER',
+        driverName: 'Rameshwar Rao',
+        grossKg: 43800,
+        netKg: 29600,
+        tareKg: 14200,
+        limitKg: 28000,
+        overloadKg: 1600,
+        status: 'OVERLOADED',
+      },
+      {
+        camId: 'CAM-02',
+        name: 'CAM-02: Outbound Dispatch Gate',
+        locationSubtitle: 'Singareni OCP-IV · Exit Weighbridge',
+        confidence: 98.9,
+        vehicleNumber: 'TS08UB4901',
+        vehicleType: '12-WHEELER MULTI-AXLE',
+        driverName: 'Mohd. Khaleel',
+        grossKg: 38200,
+        netKg: 24700,
+        tareKg: 13500,
+        limitKg: 26000,
+        overloadKg: 0,
+        status: 'CLEARED',
+      },
+      {
+        camId: 'CAM-03',
+        name: 'CAM-03: Quarry Exit Scale',
+        locationSubtitle: 'Ibrahimpatnam Granite · Primary Ramp',
+        confidence: 99.1,
+        vehicleNumber: 'TS12UD9828',
+        vehicleType: '14-WHEELER HEAVY DUMPER',
+        driverName: 'B. Venkat Reddy',
+        grossKg: 46200,
+        netKg: 31100,
+        tareKg: 15100,
+        limitKg: 28000,
+        overloadKg: 3100,
+        status: 'OVERLOADED',
+      },
+      {
+        camId: 'CAM-04',
+        name: 'CAM-04: Crushing Plant Gate',
+        locationSubtitle: 'Karimnagar Tan Brown · Feeder Scale',
+        confidence: 97.8,
+        vehicleNumber: 'TS02EA3310',
+        vehicleType: '10-WHEELER TIPPER',
+        driverName: 'K. Sammaiah',
+        grossKg: 34500,
+        netKg: 22300,
+        tareKg: 12200,
+        limitKg: 25000,
+        overloadKg: 0,
+        status: 'CLEARED',
+      },
+    ],
+  },
+  'Singareni Collieries OCP-IV': {
+    mineTitle: 'Singareni Collieries OCP-IV',
+    district: 'Bhadradri Kothagudem',
+    cameras: [
+      {
+        camId: 'CAM-01',
+        name: 'CAM-01: Inbound Pit Scale Gate',
+        locationSubtitle: 'Pit Ingress Weighbridge #1',
+        confidence: 99.4,
+        vehicleNumber: 'TG07U1889',
+        vehicleType: '10-WHEELER COAL TIPPER',
+        driverName: 'Rameshwar Rao',
+        grossKg: 43800,
+        netKg: 29600,
+        tareKg: 14200,
+        limitKg: 28000,
+        overloadKg: 1600,
+        status: 'OVERLOADED',
+      },
+      {
+        camId: 'CAM-02',
+        name: 'CAM-02: Outbound Main Dispatch Gate',
+        locationSubtitle: 'Commercial Exit Weighbridge #2',
+        confidence: 98.9,
+        vehicleNumber: 'TS08UB4901',
+        vehicleType: '12-WHEELER MULTI-AXLE',
+        driverName: 'Mohd. Khaleel',
+        grossKg: 38200,
+        netKg: 24700,
+        tareKg: 13500,
+        limitKg: 26000,
+        overloadKg: 0,
+        status: 'CLEARED',
+      },
+      {
+        camId: 'CAM-03',
+        name: 'CAM-03: Coal Washery Feeder Scale',
+        locationSubtitle: 'Washery Inflow Station #3',
+        confidence: 99.2,
+        vehicleNumber: 'TG07U9921',
+        vehicleType: '8-WHEELER MEDIUM TIPPER',
+        driverName: 'E. Mallesh',
+        grossKg: 32900,
+        netKg: 21700,
+        tareKg: 11200,
+        limitKg: 24000,
+        overloadKg: 0,
+        status: 'CLEARED',
+      },
+      {
+        camId: 'CAM-04',
+        name: 'CAM-04: Siding Railway Transfer Gate',
+        locationSubtitle: 'Rail Head Weighbridge Terminal',
+        confidence: 98.6,
+        vehicleNumber: 'TS04UB7712',
+        vehicleType: '14-WHEELER HEAVY DUMPER',
+        driverName: 'S. Narsimha',
+        grossKg: 45200,
+        netKg: 30100,
+        tareKg: 15100,
+        limitKg: 28000,
+        overloadKg: 2100,
+        status: 'OVERLOADED',
+      },
+    ],
+  },
+  'Ibrahimpatnam Granite & Dolerite': {
+    mineTitle: 'Ibrahimpatnam Granite & Dolerite',
+    district: 'Rangareddy',
+    cameras: [
+      {
+        camId: 'CAM-01',
+        name: 'CAM-01: Quarry Exit Weighbridge',
+        locationSubtitle: 'Quarry North Exit Scale',
+        confidence: 99.1,
+        vehicleNumber: 'TS12UD9828',
+        vehicleType: '14-WHEELER HEAVY DUMPER',
+        driverName: 'B. Venkat Reddy',
+        grossKg: 46200,
+        netKg: 31100,
+        tareKg: 15100,
+        limitKg: 28000,
+        overloadKg: 3100,
+        status: 'OVERLOADED',
+      },
+      {
+        camId: 'CAM-02',
+        name: 'CAM-02: Block Dressing Yard Gate',
+        locationSubtitle: 'Granite Blocks Ingress Gate',
+        confidence: 98.7,
+        vehicleNumber: 'TS05UB1122',
+        vehicleType: '10-WHEELER BLOCK CARRIER',
+        driverName: 'G. Suresh Kumar',
+        grossKg: 33400,
+        netKg: 21300,
+        tareKg: 12100,
+        limitKg: 24000,
+        overloadKg: 0,
+        status: 'CLEARED',
+      },
+      {
+        camId: 'CAM-03',
+        name: 'CAM-03: Heavy Transit Ramp #2',
+        locationSubtitle: 'Secondary South Weighbridge',
+        confidence: 99.3,
+        vehicleNumber: 'TS12UD9828',
+        vehicleType: '14-WHEELER HEAVY DUMPER',
+        driverName: 'B. Venkat Reddy',
+        grossKg: 46200,
+        netKg: 31100,
+        tareKg: 15100,
+        limitKg: 28000,
+        overloadKg: 3100,
+        status: 'OVERLOADED',
+      },
+      {
+        camId: 'CAM-04',
+        name: 'CAM-04: Highway Concession Outgate',
+        locationSubtitle: 'ORR Connector Checkpost Scale',
+        confidence: 99.0,
+        vehicleNumber: 'TS05UB1122',
+        vehicleType: '10-WHEELER BLOCK CARRIER',
+        driverName: 'G. Suresh Kumar',
+        grossKg: 33400,
+        netKg: 21300,
+        tareKg: 12100,
+        limitKg: 24000,
+        overloadKg: 0,
+        status: 'CLEARED',
+      },
+    ],
+  },
+  'Karimnagar Tan Brown Granite Basin': {
+    mineTitle: 'Karimnagar Tan Brown Granite Basin',
+    district: 'Karimnagar',
+    cameras: [
+      {
+        camId: 'CAM-01',
+        name: 'CAM-01: Primary Quarry Access Ramp',
+        locationSubtitle: 'Pit-Head Extraction Weighbridge',
+        confidence: 97.8,
+        vehicleNumber: 'TS02EA3310',
+        vehicleType: '10-WHEELER GRANITE TRUCK',
+        driverName: 'K. Sammaiah',
+        grossKg: 34500,
+        netKg: 22300,
+        tareKg: 12200,
+        limitKg: 25000,
+        overloadKg: 0,
+        status: 'CLEARED',
+      },
+      {
+        camId: 'CAM-02',
+        name: 'CAM-02: Crushing Feeder Weighbridge',
+        locationSubtitle: 'Aggregates Plant Input Gate',
+        confidence: 98.4,
+        vehicleNumber: 'TS13UA4401',
+        vehicleType: '10-WHEELER TIPPER',
+        driverName: 'M. Venkatesh',
+        grossKg: 35600,
+        netKg: 22900,
+        tareKg: 12700,
+        limitKg: 25000,
+        overloadKg: 0,
+        status: 'CLEARED',
+      },
+      {
+        camId: 'CAM-03',
+        name: 'CAM-03: Export Block Yard Scale',
+        locationSubtitle: 'Specialized Export Platform',
+        confidence: 99.2,
+        vehicleNumber: 'TS02EA3310',
+        vehicleType: '10-WHEELER GRANITE TRUCK',
+        driverName: 'K. Sammaiah',
+        grossKg: 34500,
+        netKg: 22300,
+        tareKg: 12200,
+        limitKg: 25000,
+        overloadKg: 0,
+        status: 'CLEARED',
+      },
+      {
+        camId: 'CAM-04',
+        name: 'CAM-04: South Gate Commercial Outpost',
+        locationSubtitle: 'State Highway Transit Scale',
+        confidence: 98.8,
+        vehicleNumber: 'TS13UA4401',
+        vehicleType: '10-WHEELER TIPPER',
+        driverName: 'M. Venkatesh',
+        grossKg: 35600,
+        netKg: 22900,
+        tareKg: 12700,
+        limitKg: 25000,
+        overloadKg: 0,
+        status: 'CLEARED',
+      },
+    ],
+  },
+  'Paloncha Dolomite & Limestone Quarry': {
+    mineTitle: 'Paloncha Dolomite & Limestone Quarry',
+    district: 'Bhadradri Kothagudem',
+    cameras: [
+      {
+        camId: 'CAM-01',
+        name: 'CAM-01: Primary Pit Scale',
+        locationSubtitle: 'Dolomite Pit Excavation Ramp',
+        confidence: 98.9,
+        vehicleNumber: 'TS04UB7712',
+        vehicleType: '10-WHEELER DOLOMITE TIPPER',
+        driverName: 'S. Narsimha',
+        grossKg: 39800,
+        netKg: 25900,
+        tareKg: 13900,
+        limitKg: 26000,
+        overloadKg: 0,
+        status: 'CLEARED',
+      },
+      {
+        camId: 'CAM-02',
+        name: 'CAM-02: Kiln Supply Weighbridge',
+        locationSubtitle: 'Limestone Kiln Feed Scale',
+        confidence: 99.1,
+        vehicleNumber: 'TS04UB7712',
+        vehicleType: '10-WHEELER DOLOMITE TIPPER',
+        driverName: 'S. Narsimha',
+        grossKg: 39800,
+        netKg: 25900,
+        tareKg: 13900,
+        limitKg: 26000,
+        overloadKg: 0,
+        status: 'CLEARED',
+      },
+      {
+        camId: 'CAM-03',
+        name: 'CAM-03: Secondary Crushing Gate',
+        locationSubtitle: 'Crushed Flux Outflow Gate',
+        confidence: 99.4,
+        vehicleNumber: 'TG07U1889',
+        vehicleType: '10-WHEELER TIPPER',
+        driverName: 'Rameshwar Rao',
+        grossKg: 42000,
+        netKg: 27800,
+        tareKg: 14200,
+        limitKg: 26000,
+        overloadKg: 1800,
+        status: 'OVERLOADED',
+      },
+      {
+        camId: 'CAM-04',
+        name: 'CAM-04: Transit Checkpost Scale',
+        locationSubtitle: 'Highway Concession Weighbridge',
+        confidence: 99.0,
+        vehicleNumber: 'TS04UB7712',
+        vehicleType: '10-WHEELER DOLOMITE TIPPER',
+        driverName: 'S. Narsimha',
+        grossKg: 39800,
+        netKg: 25900,
+        tareKg: 13900,
+        limitKg: 26000,
+        overloadKg: 0,
+        status: 'CLEARED',
+      },
+    ],
+  },
+  'Wadapally Krishna River Sand Reach': {
+    mineTitle: 'Wadapally Krishna River Sand Reach',
+    district: 'Nalgonda',
+    cameras: [
+      {
+        camId: 'CAM-01',
+        name: 'CAM-01: Riverbank Dredging Scale',
+        locationSubtitle: 'Sand Loading Reach #1',
+        confidence: 99.5,
+        vehicleNumber: 'TS05UE3699',
+        vehicleType: '12-WHEELER SAND TIPPER',
+        driverName: 'K. Chandraiah',
+        grossKg: 41200,
+        netKg: 27400,
+        tareKg: 13800,
+        limitKg: 25000,
+        overloadKg: 2400,
+        status: 'OVERLOADED',
+      },
+      {
+        camId: 'CAM-02',
+        name: 'CAM-02: Sand Reach Exit Toll Scale',
+        locationSubtitle: 'Riverbank Main Exit Checkpost',
+        confidence: 99.1,
+        vehicleNumber: 'TS05UE0999',
+        vehicleType: '10-WHEELER SAND TIPPER',
+        driverName: 'P. Narsing Rao',
+        grossKg: 36400,
+        netKg: 23600,
+        tareKg: 12800,
+        limitKg: 25000,
+        overloadKg: 0,
+        status: 'CLEARED',
+      },
+      {
+        camId: 'CAM-03',
+        name: 'CAM-03: GPS Geo-Transit Gate',
+        locationSubtitle: 'Real-time Telemetry Verification Scale',
+        confidence: 99.6,
+        vehicleNumber: 'TS05UE3699',
+        vehicleType: '12-WHEELER SAND TIPPER',
+        driverName: 'K. Chandraiah',
+        grossKg: 41200,
+        netKg: 27400,
+        tareKg: 13800,
+        limitKg: 25000,
+        overloadKg: 2400,
+        status: 'OVERLOADED',
+      },
+      {
+        camId: 'CAM-04',
+        name: 'CAM-04: Highway Junction Checkpost',
+        locationSubtitle: 'National Highway Feed Scale',
+        confidence: 98.9,
+        vehicleNumber: 'TS05UE0999',
+        vehicleType: '10-WHEELER SAND TIPPER',
+        driverName: 'P. Narsing Rao',
+        grossKg: 36400,
+        netKg: 23600,
+        tareKg: 12800,
+        limitKg: 25000,
+        overloadKg: 0,
+        status: 'CLEARED',
+      },
+    ],
+  },
+  'Tandur Blue Limestone Belt': {
+    mineTitle: 'Tandur Blue Limestone Belt',
+    district: 'Vikarabad',
+    cameras: [
+      {
+        camId: 'CAM-01',
+        name: 'CAM-01: Cement Quarry Scale',
+        locationSubtitle: 'Quarry Extraction Ramp #1',
+        confidence: 99.2,
+        vehicleNumber: 'TS07UD1122',
+        vehicleType: '12-WHEELER LIMESTONE TIPPER',
+        driverName: 'V. Jagadish',
+        grossKg: 42500,
+        netKg: 28300,
+        tareKg: 14200,
+        limitKg: 26000,
+        overloadKg: 2300,
+        status: 'OVERLOADED',
+      },
+      {
+        camId: 'CAM-02',
+        name: 'CAM-02: Slab Processing Plant Scale',
+        locationSubtitle: 'Polished Slab Ingress Platform',
+        confidence: 98.8,
+        vehicleNumber: 'TS08UB4901',
+        vehicleType: '10-WHEELER FLATBED TRUCK',
+        driverName: 'Mohd. Khaleel',
+        grossKg: 37800,
+        netKg: 24600,
+        tareKg: 13200,
+        limitKg: 26000,
+        overloadKg: 0,
+        status: 'CLEARED',
+      },
+      {
+        camId: 'CAM-03',
+        name: 'CAM-03: Western Dispatch Outpost',
+        locationSubtitle: 'Inter-State Border Transit Scale',
+        confidence: 99.0,
+        vehicleNumber: 'TS07UD1122',
+        vehicleType: '12-WHEELER LIMESTONE TIPPER',
+        driverName: 'V. Jagadish',
+        grossKg: 42500,
+        netKg: 28300,
+        tareKg: 14200,
+        limitKg: 26000,
+        overloadKg: 2300,
+        status: 'OVERLOADED',
+      },
+      {
+        camId: 'CAM-04',
+        name: 'CAM-04: Railway Terminal Loading Bay',
+        locationSubtitle: 'Rail Siding Weighbridge Scale',
+        confidence: 98.6,
+        vehicleNumber: 'TS08UB4901',
+        vehicleType: '10-WHEELER FLATBED TRUCK',
+        driverName: 'Mohd. Khaleel',
+        grossKg: 37800,
+        netKg: 24600,
+        tareKg: 13200,
+        limitKg: 26000,
+        overloadKg: 0,
+        status: 'CLEARED',
+      },
+    ],
+  },
+}
 
 export default function WeighbridgeANPRView() {
   const { user } = useAuthStore()
   const [records, setRecords] = useState<WeighbridgeRecord[]>(INITIAL_WEIGHBRIDGE_DATA)
   const [selectedRecord, setSelectedRecord] = useState<WeighbridgeRecord | null>(null)
-  const [activeCam, setActiveCam] = useState<'CAM-01' | 'CAM-02' | 'CAM-03' | 'CAM-04'>('CAM-01')
+  const [activeCam, setActiveCam] = useState<string>('CAM-01')
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'CLEARED' | 'OVERLOADED' | 'PLATE_MISMATCH'>('ALL')
   const [mineFilter, setMineFilter] = useState<string>('ALL')
+
+  // Active Camera Profile based on selected Mine Concession
+  const activeCameraNetwork = MINE_CAMERA_NETWORKS[mineFilter] || MINE_CAMERA_NETWORKS['ALL']
+  const currentCam = activeCameraNetwork.cameras.find((c) => c.camId === activeCam) || activeCameraNetwork.cameras[0]
 
   // Filtered Records
   const filteredRecords = useMemo(() => {
@@ -431,16 +958,39 @@ export default function WeighbridgeANPRView() {
 
         {/* ── Section 1: In-Mine ANPR Live Optical Feeds Grid ── */}
         <div className="bg-white border border-slate-300 rounded-xl p-5 shadow-xs space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <Video className="text-red-600 animate-pulse" size={18} />
-              <h2 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">
-                In-Mine Automated Optical ANPR Camera Surveillance
-              </h2>
+              <div>
+                <h2 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">
+                  In-Mine Automated Optical ANPR Camera Surveillance
+                </h2>
+                <span className="text-xs text-slate-500 font-medium">
+                  Dedicated High-Resolution Optical Character Recognition (OCR) Scales per Concession
+                </span>
+              </div>
             </div>
-            <span className="text-xs text-slate-500 font-medium">
-              Real-time High-Resolution Optical Character Recognition (OCR) Stream
-            </span>
+
+            {/* Mine Concession Selector */}
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 shadow-xs">
+              <span className="text-xs font-bold text-slate-600">Mine Concession:</span>
+              <select
+                value={mineFilter}
+                onChange={(e) => {
+                  setMineFilter(e.target.value)
+                  setActiveCam('CAM-01')
+                }}
+                className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+              >
+                <option value="ALL">All Concessions (Central State Command)</option>
+                <option value="Singareni Collieries OCP-IV">Singareni Collieries OCP-IV (Bhadradri)</option>
+                <option value="Ibrahimpatnam Granite & Dolerite">Ibrahimpatnam Granite & Dolerite (Rangareddy)</option>
+                <option value="Karimnagar Tan Brown Granite Basin">Karimnagar Tan Brown Granite Basin (Karimnagar)</option>
+                <option value="Paloncha Dolomite & Limestone Quarry">Paloncha Dolomite & Limestone Quarry (Bhadradri)</option>
+                <option value="Wadapally Krishna River Sand Reach">Wadapally Krishna River Sand Reach (Nalgonda)</option>
+                <option value="Tandur Blue Limestone Belt">Tandur Blue Limestone Belt (Vikarabad)</option>
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -450,24 +1000,24 @@ export default function WeighbridgeANPRView() {
               <div className="flex flex-col items-center justify-center text-slate-600 select-none pointer-events-none">
                 <Camera size={40} className="text-slate-700 mb-2 opacity-50" />
                 <span className="text-xs font-mono font-bold text-slate-500 tracking-wider">OPTICAL ANPR CAMERA FEED</span>
-                <span className="text-[10px] text-slate-600 font-mono mt-0.5">STANDBY · WAITING FOR VEHICLE SCALE INGRESS</span>
+                <span className="text-[10px] text-slate-600 font-mono mt-0.5">STANDBY · SCALE ACTIVE AT {activeCameraNetwork.mineTitle.toUpperCase()}</span>
               </div>
 
               {/* In-Video ANPR HUD Overlay */}
               <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/75 backdrop-blur-md px-3 py-1 rounded text-white text-xs border border-white/20">
                 <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-                <span className="font-mono font-bold">CAM-01: Singareni OCP-IV Pit Outbound</span>
+                <span className="font-mono font-bold">{currentCam.name} · {activeCameraNetwork.mineTitle}</span>
                 <span className="text-[10px] bg-red-600 text-white px-1.5 py-0.2 rounded font-bold uppercase">LIVE</span>
               </div>
 
               {/* Optical Detection Box on Vehicle */}
-              <div className="absolute top-1/3 left-1/3 w-48 h-28 border-2 border-emerald-400 bg-emerald-500/10 rounded flex flex-col justify-between p-1.5 pointer-events-none shadow-lg">
+              <div className="absolute top-1/3 left-1/3 w-52 h-28 border-2 border-emerald-400 bg-emerald-500/10 rounded flex flex-col justify-between p-1.5 pointer-events-none shadow-lg">
                 <div className="flex justify-between items-center text-[9px] bg-black/80 text-emerald-300 px-1 py-0.5 rounded font-mono font-bold">
-                  <span>PLATE: TG07U1889</span>
-                  <span>OCR: 99.4%</span>
+                  <span>PLATE: {currentCam.vehicleNumber}</span>
+                  <span>OCR: {currentCam.confidence}%</span>
                 </div>
                 <div className="text-[9px] text-white font-mono bg-black/80 px-1 rounded self-start">
-                  10-WHEELER · AXLE OK
+                  {currentCam.vehicleType} · {currentCam.status === 'OVERLOADED' ? 'OVERLOAD FLAGGED' : 'AXLE OK'}
                 </div>
               </div>
 
@@ -476,26 +1026,52 @@ export default function WeighbridgeANPRView() {
                 <div className="flex items-center gap-3 font-mono">
                   <div>
                     <span className="text-[10px] text-slate-400 block uppercase">Detected Plate</span>
-                    <strong className="text-emerald-400 font-bold">TG07U1889</strong>
+                    <strong className="text-emerald-400 font-bold">{currentCam.vehicleNumber}</strong>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400 block uppercase">Gross Scale</span>
-                    <strong className="text-white font-bold">43,800 KG</strong>
+                    <strong className="text-white font-bold">{currentCam.grossKg.toLocaleString()} KG</strong>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400 block uppercase">Calculated Net</span>
-                    <strong className="text-amber-400 font-bold">29,600 KG</strong>
+                    <strong className="text-amber-400 font-bold">{currentCam.netKg.toLocaleString()} KG</strong>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] bg-red-900/90 text-red-200 border border-red-500 px-2 py-0.5 rounded font-bold uppercase">
-                    ⚠️ OVERLOAD (+1.6 MT)
-                  </span>
+                  {currentCam.overloadKg > 0 ? (
+                    <span className="text-[10px] bg-red-900/90 text-red-200 border border-red-500 px-2 py-0.5 rounded font-bold uppercase">
+                      ⚠️ OVERLOAD (+{(currentCam.overloadKg / 1000).toFixed(1)} MT)
+                    </span>
+                  ) : (
+                    <span className="text-[10px] bg-emerald-900/90 text-emerald-200 border border-emerald-500 px-2 py-0.5 rounded font-bold uppercase">
+                      ✓ PERMISSIBLE LIMIT
+                    </span>
+                  )}
                   <button
                     onClick={() => {
-                      const rec = records[0]
-                      setSelectedRecord(rec)
+                      const matchingRec = records.find((r) => r.vehicleNumber === currentCam.vehicleNumber) || {
+                        id: `WB-AUTO-${currentCam.camId}`,
+                        slipNumber: `TS-WB-2026-${Math.floor(10000 + Math.random() * 89999)}`,
+                        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+                        mineName: activeCameraNetwork.mineTitle,
+                        district: activeCameraNetwork.district,
+                        scaleName: currentCam.name,
+                        vehicleNumber: currentCam.vehicleNumber,
+                        driverName: currentCam.driverName,
+                        ePermitNumber: `eTP-TG-2026-${Math.floor(10000 + Math.random() * 89999)}`,
+                        mineral: 'Major/Minor Mineral Consignment',
+                        grossWeightKg: currentCam.grossKg,
+                        tareWeightKg: currentCam.tareKg,
+                        netWeightKg: currentCam.netKg,
+                        permissibleLimitKg: currentCam.limitKg,
+                        overloadKg: currentCam.overloadKg,
+                        anprPlateMatched: true,
+                        ocrConfidence: currentCam.confidence,
+                        status: currentCam.status,
+                        gateCamera: currentCam.name,
+                      }
+                      setSelectedRecord(matchingRec)
                     }}
                     className="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded text-xs font-bold transition-colors cursor-pointer"
                   >
@@ -506,90 +1082,43 @@ export default function WeighbridgeANPRView() {
             </div>
 
             {/* In-Mine Camera Feeds Selector & Secondary Previews */}
-            <div className="flex flex-col gap-3 justify-between">
-              <div
-                onClick={() => setActiveCam('CAM-01')}
-                className={clsx(
-                  'p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between',
-                  activeCam === 'CAM-01'
-                    ? 'bg-indigo-50 border-indigo-500 shadow-xs'
-                    : 'bg-white border-slate-200 hover:bg-slate-50'
-                )}
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <span className="text-xs font-bold text-slate-900">CAM-01: Inbound Pit Scale Gate</span>
+            <div className="flex flex-col gap-2.5 justify-between">
+              {activeCameraNetwork.cameras.map((cam) => (
+                <div
+                  key={cam.camId}
+                  onClick={() => setActiveCam(cam.camId)}
+                  className={clsx(
+                    'p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between',
+                    activeCam === cam.camId
+                      ? 'bg-indigo-50 border-indigo-500 shadow-xs ring-1 ring-indigo-400'
+                      : 'bg-white border-slate-200 hover:bg-slate-50'
+                  )}
+                >
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className={clsx("w-2 h-2 rounded-full", cam.overloadKg > 0 ? "bg-amber-500" : "bg-emerald-500")} />
+                      <span className="text-xs font-bold text-slate-900">{cam.name}</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5">{cam.locationSubtitle}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] font-mono bg-slate-100 text-slate-800 px-1.5 py-0.2 rounded font-bold">
+                        {cam.vehicleNumber}
+                      </span>
+                      <span className="text-[10px] text-slate-500">{cam.vehicleType.split(' ')[0]}</span>
+                    </div>
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Singareni OCP-IV · Ingress Scale</p>
-                </div>
-                <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold">
-                  99.4% OCR
-                </span>
-              </div>
-
-              <div
-                onClick={() => setActiveCam('CAM-02')}
-                className={clsx(
-                  'p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between',
-                  activeCam === 'CAM-02'
-                    ? 'bg-indigo-50 border-indigo-500 shadow-xs'
-                    : 'bg-white border-slate-200 hover:bg-slate-50'
-                )}
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <span className="text-xs font-bold text-slate-900">CAM-02: Outbound Dispatch Gate</span>
+                  <div className="text-right">
+                    <span className="text-[10px] font-mono bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-bold block">
+                      {cam.confidence}% OCR
+                    </span>
+                    {cam.overloadKg > 0 && (
+                      <span className="text-[9px] font-bold text-red-600 block mt-1">
+                        +{(cam.overloadKg / 1000).toFixed(1)} MT
+                      </span>
+                    )}
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Singareni OCP-IV · Exit Weighbridge</p>
                 </div>
-                <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold">
-                  98.9% OCR
-                </span>
-              </div>
-
-              <div
-                onClick={() => setActiveCam('CAM-03')}
-                className={clsx(
-                  'p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between',
-                  activeCam === 'CAM-03'
-                    ? 'bg-indigo-50 border-indigo-500 shadow-xs'
-                    : 'bg-white border-slate-200 hover:bg-slate-50'
-                )}
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <span className="text-xs font-bold text-slate-900">CAM-03: Quarry Exit Scale</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Ibrahimpatnam Granite · Primary Ramp</p>
-                </div>
-                <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold">
-                  99.1% OCR
-                </span>
-              </div>
-
-              <div
-                onClick={() => setActiveCam('CAM-04')}
-                className={clsx(
-                  'p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between',
-                  activeCam === 'CAM-04'
-                    ? 'bg-indigo-50 border-indigo-500 shadow-xs'
-                    : 'bg-white border-slate-200 hover:bg-slate-50'
-                )}
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <span className="text-xs font-bold text-slate-900">CAM-04: Crushing Plant Gate</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Karimnagar Tan Brown · Feeder Scale</p>
-                </div>
-                <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold">
-                  97.8% OCR
-                </span>
-              </div>
+              ))}
             </div>
           </div>
         </div>

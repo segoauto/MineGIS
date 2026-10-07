@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { FileText, Printer, X, CheckCircle, AlertTriangle } from 'lucide-react'
 import { useMapStore } from '../../store'
+import { MOCK_LEASES } from '../../api/leases'
 
 export default function ComplianceReportModal({
   isOpen,
@@ -15,12 +16,26 @@ export default function ComplianceReportModal({
 
   if (!isOpen) return null
 
+  // Ensure active lease data is always present so downloading/printing NEVER results in a blank page
+  const activeLease = selectedLeaseData || MOCK_LEASES[0] || {
+    lease_id: 'TS-KGM-COAL-001',
+    mine_name: 'Singareni Collieries OCP-IV',
+    leaseholder_name: 'The Singareni Collieries Company Limited (SCCL)',
+    mineral_display: 'Coal (Grade G-11)',
+    mineral_type: 'Coal',
+    village: 'Rudrampur',
+    mandal: 'Kothagudem',
+    district: 'Bhadradri Kothagudem',
+    status: 'VALID',
+    area_hectares: 1240.5,
+  }
+
   const handlePrint = () => {
     setIsGenerating(true)
     setTimeout(() => {
       setIsGenerating(false)
       window.print()
-    }, 1500)
+    }, 400)
   }
 
   // Determine violations to mock state if no backend data is present (for demo)
@@ -44,7 +59,7 @@ export default function ComplianceReportModal({
             <button
               onClick={handlePrint}
               disabled={isGenerating}
-              className="flex items-center gap-2 bg-gov-600 hover:bg-gov-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 bg-gov-600 hover:bg-gov-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 cursor-pointer"
             >
               {isGenerating ? (
                 <span className="animate-pulse">Generating PDF...</span>
@@ -55,7 +70,7 @@ export default function ComplianceReportModal({
                 </>
               )}
             </button>
-            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-200 transition-colors">
+            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer">
               <X size={20} />
             </button>
           </div>
@@ -77,38 +92,33 @@ export default function ComplianceReportModal({
             </p>
           </div>
 
-          {!selectedLeaseData ? (
-             <div className="text-center text-gray-500 py-10 print:hidden">
-               Please select a mining lease on the map to generate its compliance report.
-             </div>
-          ) : (
-            <div className="space-y-8">
-              {/* Report Meta */}
-              <div className="flex justify-between text-sm">
-                 <div>
-                   <p className="text-gray-500 uppercase text-xs font-bold tracking-wider">Report Date</p>
-                   <p className="font-semibold">{dateStr}</p>
-                 </div>
-                 <div className="text-right">
-                   <p className="text-gray-500 uppercase text-xs font-bold tracking-wider">Reference ID</p>
-                   <p className="font-mono font-semibold">TGMG-SCR-{Math.floor(Math.random() * 100000)}</p>
-                 </div>
-              </div>
-
-              {/* Subject Info */}
-              <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
-                <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest border-b border-gray-200 pb-2 mb-4">
-                  Lease Subject Information
-                </h3>
-                <div className="grid grid-cols-2 gap-y-4">
-                  <div><span className="text-gray-500 text-xs uppercase block">Lease ID</span><span className="font-mono font-semibold">{selectedLeaseData.lease_id}</span></div>
-                  <div><span className="text-gray-500 text-xs uppercase block">Mine Name</span><span className="font-semibold">{selectedLeaseData.mine_name}</span></div>
-                  <div><span className="text-gray-500 text-xs uppercase block">Leaseholder</span><span className="font-semibold text-gov-700">{selectedLeaseData.leaseholder_name}</span></div>
-                  <div><span className="text-gray-500 text-xs uppercase block">Mineral</span><span className="font-semibold">{selectedLeaseData.mineral_display || selectedLeaseData.mineral_type}</span></div>
-                  <div><span className="text-gray-500 text-xs uppercase block">Location</span><span className="font-semibold">{`${selectedLeaseData.village}, ${selectedLeaseData.mandal}, ${selectedLeaseData.district}`}</span></div>
-                  <div><span className="text-gray-500 text-xs uppercase block">Status</span><span className="font-semibold px-2 py-0.5 bg-gray-200 rounded">{selectedLeaseData.status}</span></div>
+          <div className="space-y-8">
+            {/* Report Meta */}
+            <div className="flex justify-between text-sm">
+                <div>
+                  <p className="text-gray-500 uppercase text-xs font-bold tracking-wider">Report Date</p>
+                  <p className="font-semibold">{dateStr}</p>
                 </div>
+                <div className="text-right">
+                  <p className="text-gray-500 uppercase text-xs font-bold tracking-wider">Reference ID</p>
+                  <p className="font-mono font-semibold">TGMG-SCR-{Math.floor(Math.random() * 100000)}</p>
+                </div>
+            </div>
+
+            {/* Subject Info */}
+            <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
+              <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest border-b border-gray-200 pb-2 mb-4">
+                Lease Subject Information
+              </h3>
+              <div className="grid grid-cols-2 gap-y-4">
+                <div><span className="text-gray-500 text-xs uppercase block">Lease ID</span><span className="font-mono font-semibold">{activeLease.lease_id}</span></div>
+                <div><span className="text-gray-500 text-xs uppercase block">Mine Name</span><span className="font-semibold">{activeLease.mine_name}</span></div>
+                <div><span className="text-gray-500 text-xs uppercase block">Leaseholder</span><span className="font-semibold text-gov-700">{activeLease.leaseholder_name}</span></div>
+                <div><span className="text-gray-500 text-xs uppercase block">Mineral</span><span className="font-semibold">{(activeLease as any).mineral_display || activeLease.mineral_type}</span></div>
+                <div><span className="text-gray-500 text-xs uppercase block">Location</span><span className="font-semibold">{`${activeLease.village || 'Mining Zone'}, ${activeLease.mandal || 'Mandal'}, ${activeLease.district || 'Telangana'}`}</span></div>
+                <div><span className="text-gray-500 text-xs uppercase block">Status</span><span className="font-semibold px-2 py-0.5 bg-gray-200 rounded">{activeLease.status}</span></div>
               </div>
+            </div>
 
               {/* Spatial Conflict Results */}
               <div>
@@ -160,7 +170,6 @@ export default function ComplianceReportModal({
               </div>
 
             </div>
-          )}
         </div>
       </div>
 

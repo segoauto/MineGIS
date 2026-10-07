@@ -88,7 +88,7 @@ interface MapStore {
   activeGeofenceAlertPopup: ActiveGeofenceAlertPopup | null
   setActiveGeofenceAlertPopup: (alert: ActiveGeofenceAlertPopup | null) => void
   triggerGeofenceBreachDemo: (customZone?: string, customVehicleNumber?: string) => void
-  mapFlyToTarget: { lon: number; lat: number; zoom?: number; ping?: boolean } | null
+  mapFlyToTarget: { lon: number; lat: number; zoom?: number; ping?: boolean; vehicleNumber?: string; message?: string } | null
 
   // ─── GeoServer Cache Busting ──────────────────────────────
   mapRefreshTrigger: number
@@ -132,7 +132,7 @@ interface MapStore {
   setBulkUploadModalOpen: (open: boolean) => void
   setSpectralAnalysisOpen: (open: boolean) => void
   setSpectralAnalysisResult: (result: SpectralAnalysisResult | null) => void
-  setMapFlyToTarget: (target: { lon: number; lat: number; zoom?: number; ping?: boolean } | null) => void
+  setMapFlyToTarget: (target: { lon: number; lat: number; zoom?: number; ping?: boolean; vehicleNumber?: string; message?: string } | null) => void
   resetDemoData: () => void
 
   // Draw/form actions
@@ -551,7 +551,14 @@ export const useMapStore = create<MapStore>()(
         set({
           activeGeofenceAlertPopup: alertPopup,
           selectedVehicleId: veh.id,
-          mapFlyToTarget: { lon, lat, zoom: 15, ping: true },
+          mapFlyToTarget: {
+            lon,
+            lat,
+            zoom: 15,
+            ping: true,
+            vehicleNumber: veh.vehicle_number,
+            message: `🚨 Geofence Breach Alert: Vehicle ${veh.vehicle_number} at ${zone}`,
+          },
         })
         state.addVehicleAlert(vehicleAlert)
       },

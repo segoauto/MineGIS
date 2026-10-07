@@ -909,8 +909,8 @@ export default function DashboardPage({
                 </div>
               </Link>
 
-              <button
-                onClick={() => window.print()}
+              <Link
+                to="/reports"
                 className="p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-left transition-colors flex items-start gap-2.5 cursor-pointer"
               >
                 <Download size={16} className="text-emerald-700 mt-0.5 flex-shrink-0" />
@@ -918,7 +918,7 @@ export default function DashboardPage({
                   <div className="font-bold text-slate-900 text-xs">Download Report</div>
                   <div className="text-[11px] text-slate-500 mt-0.5">Download and print this summary as PDF</div>
                 </div>
-              </button>
+              </Link>
             </div>
 
             <div className="mt-4 pt-3 border-t border-slate-200 text-[11px] text-slate-500 flex items-center justify-between">

@@ -339,7 +339,14 @@ export default function TopBar() {
                       key={alert.id}
                       onClick={() => {
                         if (alert.alert_lon && alert.alert_lat) {
-                          setMapFlyToTarget({ lon: alert.alert_lon, lat: alert.alert_lat, zoom: 16, ping: true })
+                          setMapFlyToTarget({
+                            lon: alert.alert_lon,
+                            lat: alert.alert_lat,
+                            zoom: 16,
+                            ping: true,
+                            vehicleNumber: alert.vehicle_number,
+                            message: `🚨 Vehicle ${alert.vehicle_number} Alert: ${alert.alert_type_display || alert.alert_type}`,
+                          })
                           navigate('/map')
                           setShowAlerts(false)
                         } else {

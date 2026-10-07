@@ -124,9 +124,15 @@ export default function MapView() {
     if (!mapReady || !mapFlyToTarget) return
     flyTo(mapFlyToTarget.lon, mapFlyToTarget.lat, mapFlyToTarget.zoom ?? 15)
     if (mapFlyToTarget.ping) {
-      toast.success(`Map centered on alert target: ${mapFlyToTarget.lat.toFixed(4)}°N, ${mapFlyToTarget.lon.toFixed(4)}°E`, {
-        icon: '🎯',
-        style: { background: '#0F172A', color: '#38BDF8', border: '1px solid #0284C7' }
+      const alertMsg = mapFlyToTarget.message || (
+        mapFlyToTarget.vehicleNumber
+          ? `🚨 Vehicle ${mapFlyToTarget.vehicleNumber} Alert at ${mapFlyToTarget.lat.toFixed(4)}°N, ${mapFlyToTarget.lon.toFixed(4)}°E`
+          : `Map centered on target: ${mapFlyToTarget.lat.toFixed(4)}°N, ${mapFlyToTarget.lon.toFixed(4)}°E`
+      )
+      toast.success(alertMsg, {
+        icon: '🚨',
+        style: { background: '#0F172A', color: '#38BDF8', border: '1px solid #0284C7' },
+        duration: 5000,
       })
     }
     setMapFlyToTarget(null)

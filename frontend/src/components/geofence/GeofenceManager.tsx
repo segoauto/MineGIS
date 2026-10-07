@@ -578,14 +578,16 @@ export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: Geofence
     const alertLon = geomMethod === 'BUFFER' ? centerLng : (points[0]?.lng ?? 78.4867)
     const alertLat = geomMethod === 'BUFFER' ? centerLat : (points[0]?.lat ?? 17.3850)
 
+    const designatedVeh = REAL_NETRADYNE_VEHICLES.find((v) => v.assigned_district.toLowerCase().includes(newZone.district.toLowerCase())) || REAL_NETRADYNE_VEHICLES[0]
+
     // 1. Dispatch real-time geofence live alert into the surveillance feed
     const newActivationAlert: GeofenceLiveAlert = {
       id: `ALR-GEOF-${Math.floor(1000 + Math.random() * 9000)}`,
       timestamp: 'Just now',
       eventType: 'ENTRY',
-      vehicleNumber: 'SURVEILLANCE-RADAR',
-      vehicleType: 'Boundary Sentinel',
-      driverName: 'Automated Geofence Grid',
+      vehicleNumber: designatedVeh.vehicle_number,
+      vehicleType: designatedVeh.vehicle_type_display,
+      driverName: designatedVeh.driver_name,
       zoneId: newZone.id,
       zoneName: newZone.name,
       district: newZone.district,
@@ -593,24 +595,24 @@ export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: Geofence
       districtAuthorityNotified: `${newZone.district} DMO & Regional Vigilance Squad alerted`,
       stateAuthorityNotified: 'Director of Mines & Geology (Central State Surveillance Ledger)',
       status: 'DELIVERED',
-      netradyneDevice: netradyneFleetName,
+      netradyneDevice: designatedVeh.netradyne_device_id || netradyneFleetName,
     }
     setLiveAlerts((prev) => [newActivationAlert, ...prev])
 
     // 2. Dispatch to global vehicle alerts ledger and notification counter
     addVehicleAlert({
       id: Date.now(),
-      vehicle_number: 'PERIMETER-ONLINE',
-      driver_name: 'Geofence Engine',
+      vehicle_number: designatedVeh.vehicle_number,
+      driver_name: designatedVeh.driver_name,
       alert_type: 'GEOFENCE_ENTRY',
-      alert_type_display: `Geofence Perimeter Activated: ${newZone.name}`,
+      alert_type_display: `Vehicle ${designatedVeh.vehicle_number}: Geofence Active in ${newZone.name}`,
       severity: 'HIGH',
       alert_lon: alertLon,
       alert_lat: alertLat,
       lease_id: newZone.id,
       mine_name: newZone.name,
       timestamp: new Date().toISOString(),
-      description: `Active Perimeter Established: "${newZone.name}" (${newZone.coordinatesSummary}). Speed limit: ${newZone.speedLimitKmh} km/h. Real-time telemetry breach alerts enabled for ${newZone.district}.`,
+      description: `Active Perimeter Established for Vehicle ${designatedVeh.vehicle_number} in "${newZone.name}" (${newZone.coordinatesSummary}). Speed limit: ${newZone.speedLimitKmh} km/h. Real-time telemetry breach alerts enabled for ${newZone.district}.`,
       is_resolved: false,
       resolved_by_name: null,
       resolved_at: null,
@@ -619,8 +621,8 @@ export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: Geofence
     // 3. Trigger tactical map alert popup
     useMapStore.getState().setActiveGeofenceAlertPopup({
       id: Date.now(),
-      vehicleNumber: `SURVEILLANCE-${newZone.id}`,
-      driverName: 'Perimeter Activated',
+      vehicleNumber: designatedVeh.vehicle_number,
+      driverName: designatedVeh.driver_name,
       eventType: 'ENTRY',
       zoneName: newZone.name,
       zoneType: newZone.typeDisplay,

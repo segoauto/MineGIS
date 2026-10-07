@@ -14,6 +14,7 @@ import LeaseInfoPanel from '../components/panels/LeaseInfoPanel'
 import VehicleTrackingPanel from '../components/vehicle/VehicleTrackingPanel'
 import LeaseFormPanel from '../components/panels/LeaseFormPanel'
 import ComplianceReportModal from '../components/reports/ComplianceReportModal'
+import ReportsView from '../components/reports/ReportsView'
 import ImageryComparisonModal from '../components/ui/ImageryComparisonModal'
 import SpectralAnalysisModal from '../components/analysis/SpectralAnalysisModal'
 import TenderDemoModal from '../components/ui/TenderDemoModal'
@@ -130,11 +131,6 @@ export default function PortalLayout() {
 
   const handleSelectTab = (tab: PortalTab) => {
     if (!isTabAllowed(role, tab)) {
-      return
-    }
-
-    if (tab === 'reports') {
-      setReportModalOpen(true)
       return
     }
 
@@ -405,7 +401,12 @@ export default function PortalLayout() {
             <HROfficersView onNavigateToMap={() => handleSelectTab('map')} />
           )}
 
-          {/* 9. GOVERNANCE & AUDIT */}
+          {/* 9. STATUTORY CONCESSION & COMPLIANCE REPORTS */}
+          {activeTab === 'reports' && (
+            <ReportsView onNavigateToMap={() => handleSelectTab('map')} />
+          )}
+
+          {/* 10. GOVERNANCE & AUDIT */}
           {activeTab === 'governance' && (
             <GovernancePage embed={true} />
           )}

@@ -33,18 +33,18 @@ import { useMapStore, useAuthStore, type VehicleAlert } from '../store'
 import { getUserJurisdiction } from '../utils/districts'
 
 export const TELANGANA_ZONAL_OFFICERS: Record<string, { zone: string; officer: string; designation: string; email: string; phone: string }> = {
-  'Bhadradri Kothagudem': { zone: 'Kothagudem & Godavari Basin Zone', officer: 'Sri K. Venkateshwarlu', designation: 'Zonal Joint Director (Mines)', email: 'zmo.kothagudem@mines.telangana.gov.in', phone: '+91 8744-254100' },
-  'Khammam': { zone: 'Kothagudem & Godavari Basin Zone', officer: 'Sri K. Venkateshwarlu', designation: 'Zonal Joint Director (Mines)', email: 'zmo.kothagudem@mines.telangana.gov.in', phone: '+91 8744-254100' },
-  'Warangal': { zone: 'Northern Telangana Zone (Warangal)', officer: 'Sri M. Rajender Reddy', designation: 'Zonal Mining Officer', email: 'zmo.warangal@mines.telangana.gov.in', phone: '+91 870-2448201' },
-  'Karimnagar': { zone: 'Northern Telangana Zone (Warangal)', officer: 'Sri M. Rajender Reddy', designation: 'Zonal Mining Officer', email: 'zmo.warangal@mines.telangana.gov.in', phone: '+91 870-2448201' },
-  'Peddapalli': { zone: 'Northern Telangana Zone (Warangal)', officer: 'Sri M. Rajender Reddy', designation: 'Zonal Mining Officer', email: 'zmo.warangal@mines.telangana.gov.in', phone: '+91 870-2448201' },
-  'Nizamabad': { zone: 'North-Western Zone (Nizamabad)', officer: 'Smt. P. Shailaja', designation: 'Zonal Mining Officer', email: 'zmo.nizamabad@mines.telangana.gov.in', phone: '+91 8462-231120' },
-  'Adilabad': { zone: 'North-Western Zone (Nizamabad)', officer: 'Smt. P. Shailaja', designation: 'Zonal Mining Officer', email: 'zmo.nizamabad@mines.telangana.gov.in', phone: '+91 8462-231120' },
-  'Rangareddy': { zone: 'Capital & Southern Zone (Hyderabad)', officer: 'Sri B. Srinivas Rao', designation: 'Zonal Joint Director (Enforcement)', email: 'zmo.hyderabad@mines.telangana.gov.in', phone: '+91 40-23450912' },
-  'Hyderabad': { zone: 'Capital & Southern Zone (Hyderabad)', officer: 'Sri B. Srinivas Rao', designation: 'Zonal Joint Director (Enforcement)', email: 'zmo.hyderabad@mines.telangana.gov.in', phone: '+91 40-23450912' },
-  'Nalgonda': { zone: 'Capital & Southern Zone (Hyderabad)', officer: 'Sri B. Srinivas Rao', designation: 'Zonal Joint Director (Enforcement)', email: 'zmo.hyderabad@mines.telangana.gov.in', phone: '+91 40-23450912' },
-  'Mahabubnagar': { zone: 'Capital & Southern Zone (Hyderabad)', officer: 'Sri B. Srinivas Rao', designation: 'Zonal Joint Director (Enforcement)', email: 'zmo.hyderabad@mines.telangana.gov.in', phone: '+91 40-23450912' },
-  'Vikarabad': { zone: 'Capital & Southern Zone (Hyderabad)', officer: 'Sri B. Srinivas Rao', designation: 'Zonal Joint Director (Enforcement)', email: 'zmo.hyderabad@mines.telangana.gov.in', phone: '+91 40-23450912' },
+  'Bhadradri Kothagudem': { zone: 'Kothagudem & Godavari Basin Zone', officer: 'Joint Director (Bhadradri Zone)', designation: 'Zonal Joint Director (Mines)', email: 'zmo.kothagudem@mines.telangana.gov.in', phone: '+91 8744-254100' },
+  'Khammam': { zone: 'Kothagudem & Godavari Basin Zone', officer: 'Joint Director (Bhadradri Zone)', designation: 'Zonal Joint Director (Mines)', email: 'zmo.kothagudem@mines.telangana.gov.in', phone: '+91 8744-254100' },
+  'Warangal': { zone: 'Northern Telangana Zone (Warangal)', officer: 'Zonal Mining Officer (Warangal)', designation: 'Zonal Mining Officer', email: 'zmo.warangal@mines.telangana.gov.in', phone: '+91 870-2448201' },
+  'Karimnagar': { zone: 'Northern Telangana Zone (Warangal)', officer: 'Zonal Mining Officer (Warangal)', designation: 'Zonal Mining Officer', email: 'zmo.warangal@mines.telangana.gov.in', phone: '+91 870-2448201' },
+  'Peddapalli': { zone: 'Northern Telangana Zone (Warangal)', officer: 'Zonal Mining Officer (Warangal)', designation: 'Zonal Mining Officer', email: 'zmo.warangal@mines.telangana.gov.in', phone: '+91 870-2448201' },
+  'Nizamabad': { zone: 'North-Western Zone (Nizamabad)', officer: 'Zonal Mining Officer (Nizamabad)', designation: 'Zonal Mining Officer', email: 'zmo.nizamabad@mines.telangana.gov.in', phone: '+91 8462-231120' },
+  'Adilabad': { zone: 'North-Western Zone (Nizamabad)', officer: 'Zonal Mining Officer (Nizamabad)', designation: 'Zonal Mining Officer', email: 'zmo.nizamabad@mines.telangana.gov.in', phone: '+91 8462-231120' },
+  'Rangareddy': { zone: 'Capital & Southern Zone (Hyderabad)', officer: 'Zonal Joint Director (Enforcement)', designation: 'Zonal Joint Director (Enforcement)', email: 'zmo.hyderabad@mines.telangana.gov.in', phone: '+91 40-23450912' },
+  'Hyderabad': { zone: 'Capital & Southern Zone (Hyderabad)', officer: 'Zonal Joint Director (Enforcement)', designation: 'Zonal Joint Director (Enforcement)', email: 'zmo.hyderabad@mines.telangana.gov.in', phone: '+91 40-23450912' },
+  'Nalgonda': { zone: 'Capital & Southern Zone (Hyderabad)', officer: 'Zonal Joint Director (Enforcement)', designation: 'Zonal Joint Director (Enforcement)', email: 'zmo.hyderabad@mines.telangana.gov.in', phone: '+91 40-23450912' },
+  'Mahabubnagar': { zone: 'Capital & Southern Zone (Hyderabad)', officer: 'Zonal Joint Director (Enforcement)', designation: 'Zonal Joint Director (Enforcement)', email: 'zmo.hyderabad@mines.telangana.gov.in', phone: '+91 40-23450912' },
+  'Vikarabad': { zone: 'Capital & Southern Zone (Hyderabad)', officer: 'Zonal Joint Director (Enforcement)', designation: 'Zonal Joint Director (Enforcement)', email: 'zmo.hyderabad@mines.telangana.gov.in', phone: '+91 40-23450912' },
 }
 
 export function getZonalOfficerForDistrict(district?: string) {
@@ -53,7 +53,7 @@ export function getZonalOfficerForDistrict(district?: string) {
   }
   return {
     zone: 'Telangana State Mineral Directorate HQ (Hyderabad)',
-    officer: 'Sri B. Srinivas Rao',
+    officer: 'Zonal Joint Director (Statewide Enforcement)',
     designation: 'Zonal Joint Director (Statewide Enforcement)',
     email: 'zmo.hq@mines.telangana.gov.in',
     phone: '+91 40-23450912',
@@ -408,9 +408,17 @@ export default function AnomalyHubPage({ embed = false }: { embed?: boolean }) {
       const v = useMapStore.getState().vehicles.find((veh) => veh.vehicle_number === vehicleNumber)
       if (v) selectVehicle(v.id)
     }
-    setMapFlyToTarget({ lon, lat, zoom: 15, ping: true })
+    const vText = vehicleNumber ? ` for Vehicle ${vehicleNumber}` : ''
+    setMapFlyToTarget({
+      lon,
+      lat,
+      zoom: 15,
+      ping: true,
+      vehicleNumber,
+      message: `🚨 Focused map on alert target${vText} [${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E]`,
+    })
     navigate('/map')
-    toast.success(`Focused map on target coordinates [${lon.toFixed(4)}, ${lat.toFixed(4)}]`, { icon: '🎯' })
+    toast.success(`Focused map on alert target${vText} [${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E]`, { icon: '🎯' })
   }
 
   // Filtered Production Records

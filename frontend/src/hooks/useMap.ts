@@ -200,16 +200,16 @@ export function useMap(containerRef: React.RefObject<HTMLDivElement>) {
         }
         return [
           new Style({
-            stroke: new Stroke({ color: '#ffffff', width: 4 }),
+            stroke: new Stroke({ color: '#ffffff', width: 3.5 }),
           }),
           new Style({
-            fill: new Fill({ color: 'rgba(34, 197, 94, 0.06)' }),
-            stroke: new Stroke({ color: '#16a34a', width: isRestricted ? 3.5 : 2.2 }),
+            fill: new Fill({ color: 'rgba(0, 0, 0, 0.02)' }),
+            stroke: new Stroke({ color: '#000000', width: isRestricted ? 3.5 : 2.2 }),
             text: new Text({
               text: distName,
               font: 'bold 13px sans-serif',
-              fill: new Fill({ color: '#0f172a' }),
-              stroke: new Stroke({ color: '#ffffff', width: 4 }),
+              fill: new Fill({ color: '#000000' }),
+              stroke: new Stroke({ color: '#ffffff', width: 3.5 }),
               overflow: true,
             }),
           }),
@@ -236,12 +236,12 @@ export function useMap(containerRef: React.RefObject<HTMLDivElement>) {
           }
         }
         return new Style({
-          fill: new Fill({ color: 'rgba(59, 130, 246, 0.04)' }),
-          stroke: new Stroke({ color: '#3b82f6', width: 1.5, lineDash: [5, 4] }),
+          fill: new Fill({ color: 'rgba(0, 0, 0, 0.01)' }),
+          stroke: new Stroke({ color: '#000000', width: 1.5, lineDash: [5, 4] }),
           text: new Text({
             text: (feature.get('Mandal') as string) || '',
             font: '10px sans-serif',
-            fill: new Fill({ color: '#1e293b' }),
+            fill: new Fill({ color: '#000000' }),
             stroke: new Stroke({ color: '#ffffff', width: 2.5 }),
             overflow: false,
           }),
@@ -789,7 +789,7 @@ export function useMap(containerRef: React.RefObject<HTMLDivElement>) {
       zIndex: 41,
     })
 
-    // ── Inverted Spatial Mask (Obscures anything outside Telangana or district) ──
+    // ── Inverted Spatial Mask (Fades out everything outside Telangana state) ──
     const maskSource = new VectorSource()
     const worldRing = [
       [-20037508, -20037508],
@@ -811,14 +811,46 @@ export function useMap(containerRef: React.RefObject<HTMLDivElement>) {
     })
     maskSource.addFeature(maskFeature)
 
+    // Load exact high-precision Telangana boundary GeoJSON to carve out the perfect state contour
+    fetch('/data/gis/telangana_state.geojson')
+      .then((res) => res.json())
+      .then((data) => {
+        const features = geojsonFormat.readFeatures(data, {
+          dataProjection: 'EPSG:4326',
+          featureProjection: 'EPSG:3857',
+        })
+        if (features.length > 0) {
+          const geom = features[0].getGeometry()
+          if (geom) {
+            let holes: any[] = []
+            if (geom.getType() === 'Polygon') {
+              holes = [(geom as Polygon).getCoordinates()[0]]
+            } else if (geom.getType() === 'MultiPolygon') {
+              holes = (geom as any).getPolygons().map((p: Polygon) => p.getCoordinates()[0])
+            }
+            if (holes.length > 0 && !isRestricted) {
+              maskSource.clear()
+              const maskPoly = new Polygon([worldRing, ...holes])
+              maskSource.addFeature(new Feature({
+                geometry: maskPoly,
+                name: 'Telangana State Inverted Fadeout Mask',
+              }))
+            }
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not load detailed state contour mask, using extent fallback', err)
+      })
+
     const jurisdictionMaskLayer = new VectorLayer({
       source: maskSource,
       style: new Style({
         fill: new Fill({
-          color: 'rgba(15, 23, 42, 0.88)', // Deep slate overlay obscuring out-of-district areas
+          color: 'rgba(15, 23, 42, 0.65)', // Smooth fadeout obscuring out-of-state areas
         }),
       }),
-      zIndex: 135,
+      zIndex: 4, // Directly above base tile layer, below all state/district vectors and markers
       properties: { id: 'jurisdiction_mask' },
     })
 
@@ -861,6 +893,7 @@ export function useMap(containerRef: React.RefObject<HTMLDivElement>) {
       target: containerRef.current,
       layers: [
         osmLayer, satelliteLayer, terrainLayer, lightLayer,
+        jurisdictionMaskLayer,
         // State, Districts, Mandals Boundaries
         stateVector, districtsVector, mandalsVector,
         // WMS Layers (GeoServer if active)
@@ -873,7 +906,6 @@ export function useMap(containerRef: React.RefObject<HTMLDivElement>) {
         ndviVectorLayer, wiVectorLayer,
         tripLayer,
         vehicleVectorLayer,
-        jurisdictionMaskLayer,
         jurisdictionLayer,
       ],
       view: new View({
