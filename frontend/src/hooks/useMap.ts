@@ -288,6 +288,14 @@ export function useMap(containerRef: React.RefObject<HTMLDivElement>) {
           }
         }
         const mineral = (feature.get('Mineral') as string) || (feature.get('mineral_display') as string) || ''
+        const visibleMinerals = useMapStore.getState().visibleMinerals
+        if (visibleMinerals && mineral) {
+          const isAllowed = Object.entries(visibleMinerals).some(([cat, checked]) => {
+            if (!checked) return false
+            return mineral.toLowerCase().includes(cat.toLowerCase()) || cat.toLowerCase().includes(mineral.toLowerCase())
+          })
+          if (!isAllowed) return []
+        }
         const company = (feature.get('Company') as string) || (feature.get('mine_name') as string) || ''
         const survey = (feature.get('SurveyNumb') as string) || ''
         const color = getMineralColor(mineral)
@@ -368,6 +376,14 @@ export function useMap(containerRef: React.RefObject<HTMLDivElement>) {
           }
         }
         const mineral = (feature.get('Mineral') as string) || ''
+        const visibleMinerals = useMapStore.getState().visibleMinerals
+        if (visibleMinerals && mineral) {
+          const isAllowed = Object.entries(visibleMinerals).some(([cat, checked]) => {
+            if (!checked) return false
+            return mineral.toLowerCase().includes(cat.toLowerCase()) || cat.toLowerCase().includes(mineral.toLowerCase())
+          })
+          if (!isAllowed) return []
+        }
         const company = (feature.get('Company') as string) || ''
         const survey = (feature.get('SurveyNumb') as string) || ''
         const color = getMineralColor(mineral)
@@ -1011,6 +1027,7 @@ export function useMap(containerRef: React.RefObject<HTMLDivElement>) {
             is_expiring_soon: false,
           }
           selectLease(leaseObj.lease_id, leaseObj)
+          useMapStore.getState().setSelectedMineProperties(props)
           hitFound = true
           return true
         }

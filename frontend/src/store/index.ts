@@ -90,6 +90,32 @@ interface MapStore {
   triggerGeofenceBreachDemo: (customZone?: string, customVehicleNumber?: string) => void
   mapFlyToTarget: { lon: number; lat: number; zoom?: number; ping?: boolean; vehicleNumber?: string; message?: string } | null
 
+  // ─── Mining 2 Feature Parity: Mineral Filters, Swipe, Magnifier, Buffer, Analytics ───
+  visibleMinerals: Record<string, boolean>
+  setVisibleMinerals: (minerals: Record<string, boolean>) => void
+  toggleMineral: (mineral: string) => void
+  resetMinerals: (allVisible?: boolean) => void
+
+  swipeActive: boolean
+  setSwipeActive: (active: boolean) => void
+  swipePosition: number
+  setSwipePosition: (pos: number) => void
+
+  magnifierActive: boolean
+  setMagnifierActive: (active: boolean) => void
+
+  bufferToolOpen: boolean
+  setBufferToolOpen: (open: boolean) => void
+
+  districtAnalyticsOpen: boolean
+  setDistrictAnalyticsOpen: (open: boolean) => void
+
+  mineralFilterOpen: boolean
+  setMineralFilterOpen: (open: boolean) => void
+
+  selectedMineProperties: Record<string, any> | null
+  setSelectedMineProperties: (props: Record<string, any> | null) => void
+
   // ─── GeoServer Cache Busting ──────────────────────────────
   mapRefreshTrigger: number
 
@@ -146,6 +172,20 @@ interface MapStore {
   closeLeaseForm: () => void
   
   triggerMapRefresh: () => void
+}
+
+export const DEFAULT_MINERALS: Record<string, boolean> = {
+  'Road Metal': true,
+  'Black Granite': true,
+  'Colour Granite': true,
+  'Feldspar': true,
+  'Quartz': true,
+  'Limestone Slabs': true,
+  'Laterite': true,
+  'Mosaic Chips': true,
+  'Limestone': true,
+  'Gravel': true,
+  '53/P & 743/P': true,
 }
 
 const DEFAULT_LAYERS: LayerConfig[] = [
@@ -421,6 +461,15 @@ export const useMapStore = create<MapStore>()(
       activeGeofenceAlertPopup: null,
       mapRefreshTrigger: 0,
 
+      visibleMinerals: { ...DEFAULT_MINERALS },
+      swipeActive: false,
+      swipePosition: 50,
+      magnifierActive: false,
+      bufferToolOpen: false,
+      districtAnalyticsOpen: false,
+      mineralFilterOpen: false,
+      selectedMineProperties: null,
+
       // ─── Actions ──────────────────────────────────────────
       setBaseLayer: (layer) => set({ baseLayer: layer }),
       setMapMode: (mapMode) => set({ mapMode }),
@@ -448,6 +497,28 @@ export const useMapStore = create<MapStore>()(
           selectedLeaseData: data ?? null,
           leaseInfoPanelOpen: leaseId !== null,
         }),
+
+      setVisibleMinerals: (visibleMinerals) => set({ visibleMinerals }),
+      toggleMineral: (mineral) =>
+        set((state) => ({
+          visibleMinerals: {
+            ...state.visibleMinerals,
+            [mineral]: !state.visibleMinerals[mineral],
+          },
+        })),
+      resetMinerals: (allVisible = true) =>
+        set({
+          visibleMinerals: Object.fromEntries(
+            Object.keys(DEFAULT_MINERALS).map((m) => [m, allVisible])
+          ),
+        }),
+      setSwipeActive: (swipeActive) => set({ swipeActive }),
+      setSwipePosition: (swipePosition) => set({ swipePosition }),
+      setMagnifierActive: (magnifierActive) => set({ magnifierActive }),
+      setBufferToolOpen: (bufferToolOpen) => set({ bufferToolOpen }),
+      setDistrictAnalyticsOpen: (districtAnalyticsOpen) => set({ districtAnalyticsOpen }),
+      setMineralFilterOpen: (mineralFilterOpen) => set({ mineralFilterOpen }),
+      setSelectedMineProperties: (selectedMineProperties) => set({ selectedMineProperties }),
 
       setActiveTool: (activeTool) =>
         set({

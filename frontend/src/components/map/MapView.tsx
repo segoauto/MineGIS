@@ -4,6 +4,12 @@ import { useWebSocket } from '../../hooks/useWebSocket'
 import { useMapStore } from '../../store'
 import VehicleOverlays from './VehicleOverlays'
 import GeofenceAlertPopup from './GeofenceAlertPopup'
+import BufferAnalysisWidget from './BufferAnalysisWidget'
+import MineInfoWindowPopup from './MineInfoWindowPopup'
+import MineralFilterPanel from './MineralFilterPanel'
+import MapSwipeWidget from './MapSwipeWidget'
+import MapMagnifier from './MapMagnifier'
+import DistrictAnalyticsPanel from './DistrictAnalyticsPanel'
 import { vehiclesApi } from '../../api/vehicles'
 import Draw from 'ol/interaction/Draw'
 import VectorLayer from 'ol/layer/Vector'
@@ -66,6 +72,12 @@ export default function MapView() {
     setDrawnPointCoords, activeTool, setActiveTool, setMeasurementResult,
     mapFlyToTarget, setMapFlyToTarget, triggerGeofenceBreachDemo,
     setVehicles, selectLease,
+    bufferToolOpen, setBufferToolOpen,
+    mineralFilterOpen, setMineralFilterOpen,
+    swipeActive, setSwipeActive,
+    magnifierActive, setMagnifierActive,
+    districtAnalyticsOpen, setDistrictAnalyticsOpen,
+    selectedMineProperties, setSelectedMineProperties,
   } = useMapStore()
 
   // Load and ensure vehicles are showcased immediately on map mount with periodic sync
@@ -518,6 +530,47 @@ export default function MapView() {
 
       {/* Geofence Alert Popup directly on Map */}
       <GeofenceAlertPopup />
+
+      {/* ── Mining 2 Interactive Widgets ── */}
+      {bufferToolOpen && (
+        <BufferAnalysisWidget
+          map={mapRef.current}
+          onClose={() => setBufferToolOpen(false)}
+        />
+      )}
+
+      {selectedMineProperties && (
+        <MineInfoWindowPopup
+          properties={selectedMineProperties}
+          coordinate={cursorCoords || undefined}
+          onClose={() => setSelectedMineProperties(null)}
+        />
+      )}
+
+      {mineralFilterOpen && (
+        <MineralFilterPanel
+          onClose={() => setMineralFilterOpen(false)}
+        />
+      )}
+
+      {swipeActive && (
+        <MapSwipeWidget
+          onClose={() => setSwipeActive(false)}
+        />
+      )}
+
+      {magnifierActive && (
+        <MapMagnifier
+          map={mapRef.current}
+          onClose={() => setMagnifierActive(false)}
+        />
+      )}
+
+      {districtAnalyticsOpen && (
+        <DistrictAnalyticsPanel
+          onClose={() => setDistrictAnalyticsOpen(false)}
+        />
+      )}
 
       {/* Coordinate display overlay */}
       {cursorCoords && (

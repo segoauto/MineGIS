@@ -27,7 +27,10 @@ import AnomalyHubPage from './AnomalyHubPage'
 import GovernancePage from './GovernancePage'
 import { getRolePermissions, isTabAllowed } from '../utils/rbac'
 import type { MiningLease, Vehicle } from '../types'
-import { Layers, Ruler, Truck, ShieldAlert, PenLine, CheckCircle2, X } from 'lucide-react'
+import {
+  Layers, Ruler, Truck, ShieldAlert, PenLine, CheckCircle2, X,
+  Shield, BarChart2, Split, Search, Filter
+} from 'lucide-react'
 import clsx from 'clsx'
 
 export default function PortalLayout() {
@@ -56,6 +59,16 @@ export default function PortalLayout() {
     setVehiclesVisible,
     vehicles,
     selectedVehicleId,
+    bufferToolOpen,
+    setBufferToolOpen,
+    mineralFilterOpen,
+    setMineralFilterOpen,
+    swipeActive,
+    setSwipeActive,
+    magnifierActive,
+    setMagnifierActive,
+    districtAnalyticsOpen,
+    setDistrictAnalyticsOpen,
   } = useMapStore()
 
   const location = useLocation()
@@ -199,7 +212,7 @@ export default function PortalLayout() {
                 <button
                   onClick={() => setLayerPanelOpen(!layerPanelOpen)}
                   className={clsx(
-                    'flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all',
+                    'flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all cursor-pointer',
                     layerPanelOpen
                       ? 'bg-gov-600 text-white shadow-2xs'
                       : 'text-slate-700 hover:bg-slate-100'
@@ -210,13 +223,94 @@ export default function PortalLayout() {
                   <span>Layers</span>
                 </button>
 
+                {/* Mineral Symbology & Category Filter */}
+                <button
+                  onClick={() => setMineralFilterOpen(!mineralFilterOpen)}
+                  className={clsx(
+                    'flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all cursor-pointer',
+                    mineralFilterOpen
+                      ? 'bg-gov-600 text-white shadow-2xs'
+                      : 'text-slate-700 hover:bg-slate-100'
+                  )}
+                  title="Filter 815 Mines by Mineral Category"
+                >
+                  <Filter size={14} />
+                  <span>Minerals</span>
+                </button>
+
+                {/* Spatial Buffer Proximity Analysis */}
+                <button
+                  onClick={() => setBufferToolOpen(!bufferToolOpen)}
+                  className={clsx(
+                    'flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all cursor-pointer',
+                    bufferToolOpen
+                      ? 'bg-emerald-600 text-white shadow-2xs'
+                      : 'text-slate-700 hover:bg-slate-100'
+                  )}
+                  title="Interactive Spatial Buffer Proximity Analysis"
+                >
+                  <Shield size={14} />
+                  <span>Buffer</span>
+                </button>
+
+                {/* District & Mandal Mineral Analytics */}
+                <button
+                  onClick={() => setDistrictAnalyticsOpen(!districtAnalyticsOpen)}
+                  className={clsx(
+                    'flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all cursor-pointer',
+                    districtAnalyticsOpen
+                      ? 'bg-gov-600 text-white shadow-2xs'
+                      : 'text-slate-700 hover:bg-slate-100'
+                  )}
+                  title="District & Mandal Production / Dispatch / ETS Analytics"
+                >
+                  <BarChart2 size={14} />
+                  <span>Analytics</span>
+                </button>
+
+                {/* Interactive Swipe Comparison */}
+                <button
+                  onClick={() => {
+                    setSwipeActive(!swipeActive)
+                    if (!swipeActive) setMagnifierActive(false)
+                  }}
+                  className={clsx(
+                    'flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all cursor-pointer',
+                    swipeActive
+                      ? 'bg-sky-600 text-white shadow-2xs'
+                      : 'text-slate-700 hover:bg-slate-100'
+                  )}
+                  title="Swipe Compare Basemap vs NDVI / Satellite"
+                >
+                  <Split size={14} />
+                  <span>Swipe</span>
+                </button>
+
+                {/* Spyglass Magnifier */}
+                <button
+                  onClick={() => {
+                    setMagnifierActive(!magnifierActive)
+                    if (!magnifierActive) setSwipeActive(false)
+                  }}
+                  className={clsx(
+                    'flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all cursor-pointer',
+                    magnifierActive
+                      ? 'bg-emerald-600 text-white shadow-2xs'
+                      : 'text-slate-700 hover:bg-slate-100'
+                  )}
+                  title="Interactive Basemap Spyglass Magnifier"
+                >
+                  <Search size={14} />
+                  <span>Magnifier</span>
+                </button>
+
                 <button
                   onClick={() => {
                     setSpatialToolsOpen(!spatialToolsOpen)
                     if (spatialToolsOpen && activeTool) setActiveTool(null)
                   }}
                   className={clsx(
-                    'flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all',
+                    'flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-bold transition-all cursor-pointer',
                     spatialToolsOpen || activeTool
                       ? 'bg-gov-600 text-white shadow-2xs'
                       : 'text-slate-700 hover:bg-slate-100'
@@ -224,7 +318,7 @@ export default function PortalLayout() {
                   title="Toggle Measure & Spatial Analysis Tools"
                 >
                   <Ruler size={14} />
-                  <span>Measure & Tools</span>
+                  <span>Measure</span>
                 </button>
 
                 <button

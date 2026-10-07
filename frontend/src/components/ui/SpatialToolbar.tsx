@@ -24,7 +24,12 @@ export default function SpatialToolbar() {
   const canManageLeases = perms.canCreateLease || perms.canDrawBoundaries || Boolean(user?.is_staff)
 
   const handleTool = (id: Tool) => {
-    if (id === 'buffer' || id === 'conflict') {
+    if (id === 'buffer') {
+      useMapStore.getState().setBufferToolOpen(true)
+      toast.success('Spatial Buffer Analysis tool opened. Click map to evaluate concessions.', { icon: '🛡️' })
+      return
+    }
+    if (id === 'conflict') {
       if (!selectedLeaseId) {
         useMapStore.getState().selectLease('TS-KGM-COAL-001')
         toast.success('Selected Singareni Collieries OCP-IV for PostGIS spatial analysis.', { icon: '⛏️' })
