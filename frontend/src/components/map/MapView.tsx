@@ -68,13 +68,22 @@ export default function MapView() {
     setVehicles, selectLease,
   } = useMapStore()
 
-  // Load and ensure vehicles are showcased immediately on map mount
+  // Load and ensure vehicles are showcased immediately on map mount with periodic sync
   useEffect(() => {
-    vehiclesApi.list().then((data) => {
-      if (data && data.length > 0) {
-        setVehicles(data)
-      }
-    })
+    let mounted = true
+    const fetchVehicles = () => {
+      vehiclesApi.list().then((data) => {
+        if (mounted && data && data.length > 0) {
+          setVehicles(data)
+        }
+      })
+    }
+    fetchVehicles()
+    const timer = setInterval(fetchVehicles, 15000)
+    return () => {
+      mounted = false
+      clearInterval(timer)
+    }
   }, [setVehicles])
 
   useEffect(() => {

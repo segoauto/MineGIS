@@ -93,9 +93,13 @@ export const vehiclesApi = {
         if (validVehicles.length > 0) {
           return validVehicles.map((v) => {
             const enriched = fallbackVehicles.find((ev) => ev.vehicle_number === v.vehicle_number)
+            const last_lon = (typeof v.last_lon === 'number' && v.last_lon !== 0) ? v.last_lon : (enriched?.last_lon ?? null)
+            const last_lat = (typeof v.last_lat === 'number' && v.last_lat !== 0) ? v.last_lat : (enriched?.last_lat ?? null)
             return {
               ...(enriched || {}),
               ...v,
+              last_lon,
+              last_lat,
             }
           })
         }

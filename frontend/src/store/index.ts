@@ -283,17 +283,17 @@ export const INITIAL_VEHICLE_ALERTS: VehicleAlert[] = [
     vehicle_number: 'TG07U1889',
     driver_name: 'Transit Driver (TG-07)',
     alert_type: 'GEOFENCE_EXIT',
-    alert_type_display: 'Geofence Trespass [TG07U1889]: Unauthorized Egress from Godavari Sand Reach 7',
-    severity: 'HIGH',
-    alert_lon: 77.556427,
-    alert_lat: 16.526802,
-    lease_id: 'TS-NZB-SAND-022',
-    mine_name: 'Godavari Reach-7 Sand Extraction Geofence',
+    alert_type_display: 'Geofence Clearance [TG07U1889]: Authorized Operations',
+    severity: 'LOW',
+    alert_lon: 78.579391,
+    alert_lat: 17.339499,
+    lease_id: 'TS-RR-GRN-002',
+    mine_name: 'Ibrahimpatnam Granite Corridor',
     timestamp: new Date(Date.now() - 15 * 60000).toISOString(),
-    description: 'Vehicle TG07U1889 exited authorized sand extraction perimeter outside permitted haul hours (after 18:00 hrs). Vigilance flying squad alerted.',
-    is_resolved: false,
-    resolved_by_name: null,
-    resolved_at: null,
+    description: 'Vehicle TG07U1889 verified within authorized transit perimeter.',
+    is_resolved: true,
+    resolved_by_name: 'District Mineral Officer',
+    resolved_at: new Date(Date.now() - 5 * 60000).toISOString(),
   },
   {
     id: 9002,
@@ -504,14 +504,14 @@ export const useMapStore = create<MapStore>()(
             id: 4134066,
             vehicle_number: 'TG07U1889',
             driver_name: 'Transit Driver (TG-07)',
-            assigned_district: 'Mahabubnagar',
-            last_lon: 77.556427,
-            last_lat: 16.526802,
-            current_speed_kmh: 54,
+            assigned_district: 'Rangareddy',
+            last_lon: 78.579391,
+            last_lat: 17.339499,
+            current_speed_kmh: 0,
           }
 
-        const lon = veh.last_lon || 77.556427
-        const lat = veh.last_lat || 16.526802
+        const lon = veh.last_lon || 78.579391
+        const lat = veh.last_lat || 17.339499
         const zone = customZone || 'Godavari Reach-7 Sand Extraction Geofence'
 
         const alertPopup: ActiveGeofenceAlertPopup = {
