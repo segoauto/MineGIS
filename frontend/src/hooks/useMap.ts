@@ -1176,6 +1176,18 @@ export function useMap(containerRef: React.RefObject<HTMLDivElement>) {
     })
   }, [layerVisibility, layerOpacity, mapRefreshTrigger])
 
+  // ─── Trigger layer redraw when mineral filter changes ──────────────────────
+  const visibleMinerals = useMapStore((s) => s.visibleMinerals)
+  useEffect(() => {
+    if (!mapRef.current) return
+    mapRef.current.getLayers().forEach((layer) => {
+      const id = layer.get('id') as string
+      if (id === 'mining_leases' || id === 'mines_points') {
+        (layer as any).changed()
+      }
+    })
+  }, [visibleMinerals])
+
   // ─── Synchronize Vehicles from Store onto OpenLayers Canvas Layer ─────────
   const { vehicles, vehiclesVisible, selectedVehicleId, vehicleAlerts } = useMapStore()
 

@@ -555,13 +555,14 @@ export default function MapView() {
 
       {swipeActive && (
         <MapSwipeWidget
+          mainMap={mapRef.current}
           onClose={() => setSwipeActive(false)}
         />
       )}
 
       {magnifierActive && (
         <MapMagnifier
-          map={mapRef.current}
+          mainMap={mapRef.current}
           onClose={() => setMagnifierActive(false)}
         />
       )}
