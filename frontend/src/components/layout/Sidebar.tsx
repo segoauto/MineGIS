@@ -2,7 +2,7 @@ import { useState } from 'react'
 import {
   LayoutDashboard, Map, FileText, Truck, ShieldAlert,
   AlertTriangle, FileBarChart2, ShieldCheck, ChevronLeft, ChevronRight,
-  HelpCircle, MapPin, Lock, Scale, MessageSquareWarning, Users
+  HelpCircle, MapPin, Lock, Scale, Users
 } from 'lucide-react'
 import clsx from 'clsx'
 import toast from 'react-hot-toast'
@@ -18,7 +18,6 @@ export type PortalTab =
   | 'weighbridge'
   | 'geofences'
   | 'alerts'
-  | 'complaints'
   | 'hro'
   | 'reports'
   | 'governance'
@@ -87,13 +86,6 @@ export default function Sidebar({
       icon: AlertTriangle,
       badge: activeAlertCount > 0 ? activeAlertCount : undefined,
       badgeColor: 'bg-red-100 text-red-800 border-red-300',
-    },
-    {
-      id: 'complaints',
-      label: 'Public Complaints',
-      icon: MessageSquareWarning,
-      badge: 'PGRS',
-      badgeColor: 'bg-amber-100 text-amber-800 border-amber-300',
     },
     {
       id: 'hro',

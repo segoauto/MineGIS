@@ -22,7 +22,6 @@ import LeaseDirectory from '../components/leases/LeaseDirectory'
 import FleetSurveillanceView from '../components/fleet/FleetSurveillanceView'
 import WeighbridgeANPRView from '../components/weighbridge/WeighbridgeANPRView'
 import GeofenceManager from '../components/geofence/GeofenceManager'
-import ComplaintsView from '../components/complaints/ComplaintsView'
 import HROfficersView from '../components/hro/HROfficersView'
 import AnomalyHubPage from './AnomalyHubPage'
 import GovernancePage from './GovernancePage'
@@ -87,7 +86,6 @@ export default function PortalLayout() {
     if (path.includes('/weighbridge') || path.includes('/anpr')) return 'weighbridge'
     if (path.includes('/geofences') || path.includes('/geofence')) return 'geofences'
     if (path.includes('/alerts') || path.includes('/anomaly')) return 'alerts'
-    if (path.includes('/complaints') || path.includes('/pgrs') || path.includes('/grievance')) return 'complaints'
     if (path.includes('/hro') || path.includes('/officers') || path.includes('/zonal')) return 'hro'
     if (path.includes('/governance')) return 'governance'
     if (path.includes('/reports')) return 'reports'
@@ -117,7 +115,6 @@ export default function PortalLayout() {
         weighbridge: '/weighbridge',
         geofences: '/geofences',
         alerts: '/alerts',
-        complaints: '/complaints',
         hro: '/hro',
         reports: '/reports',
         governance: '/governance',
@@ -142,7 +139,6 @@ export default function PortalLayout() {
       weighbridge: '/weighbridge',
       geofences: '/geofences',
       alerts: '/alerts',
-      complaints: '/complaints',
       hro: '/hro',
       reports: '/reports',
       governance: '/governance',
@@ -377,12 +373,7 @@ export default function PortalLayout() {
             <AnomalyHubPage embed={true} />
           )}
 
-          {/* 7. PUBLIC COMPLAINTS & GRIEVANCE REDRESSAL */}
-          {activeTab === 'complaints' && (
-            <ComplaintsView onNavigateToMap={() => handleSelectTab('map')} />
-          )}
-
-          {/* 8. HRO & ZONAL MINING OFFICERS DIRECTORY */}
+          {/* 7. HRO & ZONAL MINING OFFICERS DIRECTORY */}
           {activeTab === 'hro' && (
             <HROfficersView onNavigateToMap={() => handleSelectTab('map')} />
           )}

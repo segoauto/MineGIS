@@ -143,12 +143,12 @@ export default function NetradyneVideoModal({
             setIsConnecting(false)
             setStreamStatusInfo(
               cam === 'ROAD'
-                ? '🔴 NETRADYNE LIVE BROADCAST (AWS Kinesis HLS)'
-                : '🔴 NETRADYNE LIVE BROADCAST — Cabin Camera (AWS Kinesis HLS)'
+                ? '🔴 LIVE BROADCAST (1080p Telematics Stream)'
+                : '🔴 LIVE BROADCAST — Cabin Camera (1080p Telematics Stream)'
             )
           } else if (res.data?.stream_session?.reportedStatus === 'recv' && attempt < 3) {
-            // Netradyne live broadcast initialization in progress; poll again in 2s
-            setStreamStatusInfo('Connecting to Netradyne Live Stream Uplink...')
+            // Live broadcast initialization in progress; poll again in 2s
+            setStreamStatusInfo('Connecting to Live Stream Uplink...')
             setTimeout(() => {
               if (active) fetchStream(attempt + 1)
             }, 2000)
