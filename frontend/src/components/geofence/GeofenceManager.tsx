@@ -83,6 +83,33 @@ function calculatePerimeterKm(points: { lat: number; lng: number }[]): number {
   return Number(totalKm.toFixed(2))
 }
 
+function isPointInPolygon(point: { lat: number; lng: number }, vs: { lat: number; lng: number }[]): boolean {
+  const x = point.lng
+  const y = point.lat
+  let inside = false
+  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+    const xi = vs[i].lng
+    const yi = vs[i].lat
+    const xj = vs[j].lng
+    const yj = vs[j].lat
+    const intersect = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi
+    if (intersect) inside = !inside
+  }
+  return inside
+}
+
+function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371
+  const dLat = ((lat2 - lat1) * Math.PI) / 180
+  const dLon = ((lon2 - lon1) * Math.PI) / 180
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return R * c
+}
+
 const DISTRICT_SAMPLE_POINTS: Record<string, CoordinatePoint[]> = {
   Rangareddy: [
     { id: 'p1', lat: 17.13502, lng: 78.43125, label: 'P1: North Corner' },
@@ -273,7 +300,7 @@ type ActiveViewTab = 'ZONES' | 'ALERTS' | 'GREEN_ZONE' | 'SETTINGS'
 export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: GeofenceManagerProps) {
   const { user } = useAuthStore()
   const {
-    addVehicleAlert, selectVehicle,
+    addVehicleAlert, selectVehicle, selectedVehicleId, vehicles,
     drawnGeofenceGeoJSON, setDrawnGeofenceGeoJSON,
     setDrawBoundaryMode
   } = useMapStore()
@@ -352,6 +379,18 @@ export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: Geofence
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [filterType, setFilterType] = useState<string>('ALL')
 
+  // Target Vehicle for the statutory geofence boundary
+  const [targetVehicleId, setTargetVehicleId] = useState<number | null>(() => selectedVehicleId || null)
+  const activeVehicles = vehicles && vehicles.length > 0 ? vehicles : REAL_NETRADYNE_VEHICLES
+  const targetVeh = activeVehicles.find((v) => v.id === (targetVehicleId || selectedVehicleId))
+
+  // Keep targetVehicleId synced if selectedVehicleId changes from map or fleet surveillance
+  useEffect(() => {
+    if (selectedVehicleId) {
+      setTargetVehicleId(selectedVehicleId)
+    }
+  }, [selectedVehicleId])
+
   // Geometry Definition Method in Wizard
   const [geomMethod, setGeomMethod] = useState<'POINTS' | 'DRAW_MAP' | 'BUFFER' | 'LEASE'>('POINTS')
 
@@ -377,6 +416,30 @@ export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: Geofence
     'Automatic District & State Authority Notification',
   ])
 
+  // When targetVehicleId is set and no manual drawing is active, align center & default boundary coordinates
+  useEffect(() => {
+    if (targetVehicleId && !drawnGeofenceGeoJSON) {
+      const v = activeVehicles.find((veh) => veh.id === targetVehicleId)
+      if (v && v.last_lat != null && v.last_lon != null) {
+        setCenterLat(v.last_lat)
+        setCenterLng(v.last_lon)
+        if (!newZoneName || newZoneName.startsWith('Geofence - ')) {
+          setNewZoneName(`Geofence - ${v.vehicle_number} Perimeter`)
+        }
+        if (!newZoneMandal) {
+          setNewZoneMandal(v.current_lease_name || `${v.assigned_district} Transit Corridor`)
+        }
+        const delta = 0.003
+        setPoints([
+          { id: 'pt-v-1', lat: Number((v.last_lat + delta).toFixed(5)), lng: Number((v.last_lon - delta).toFixed(5)), label: `P1 (NW of ${v.vehicle_number})` },
+          { id: 'pt-v-2', lat: Number((v.last_lat + delta).toFixed(5)), lng: Number((v.last_lon + delta).toFixed(5)), label: `P2 (NE of ${v.vehicle_number})` },
+          { id: 'pt-v-3', lat: Number((v.last_lat - delta).toFixed(5)), lng: Number((v.last_lon + delta).toFixed(5)), label: `P3 (SE of ${v.vehicle_number})` },
+          { id: 'pt-v-4', lat: Number((v.last_lat - delta).toFixed(5)), lng: Number((v.last_lon - delta).toFixed(5)), label: `P4 (SW of ${v.vehicle_number})` },
+        ])
+      }
+    }
+  }, [targetVehicleId])
+
   // Listen for polygon drawn on the interactive OpenLayers map
   useEffect(() => {
     if (drawnGeofenceGeoJSON) {
@@ -397,12 +460,53 @@ export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: Geofence
           }))
 
           setPoints(newPts)
-          setShowCreateModal(true)
           setGeomMethod('POINTS')
-          toast.success(`Successfully imported ${newPts.length} polygon boundary points from map drawing!`, {
-            icon: '📍',
-            duration: 5000,
+
+          const activeList = vehicles && vehicles.length > 0 ? vehicles : REAL_NETRADYNE_VEHICLES
+          // Check which vehicle is inside this drawn polygon
+          let matchedVeh: Vehicle | undefined = activeList.find((v) => {
+            if (v.last_lat == null || v.last_lon == null) return false
+            return isPointInPolygon({ lat: v.last_lat, lng: v.last_lon }, newPts)
           })
+
+          // If not inside, check if selectedVehicleId matches
+          if (!matchedVeh && selectedVehicleId) {
+            matchedVeh = activeList.find((v) => v.id === selectedVehicleId)
+          }
+
+          // If still not matched, find closest vehicle to centroid
+          if (!matchedVeh && activeList.length > 0) {
+            const cLat = newPts.reduce((acc, p) => acc + p.lat, 0) / newPts.length
+            const cLng = newPts.reduce((acc, p) => acc + p.lng, 0) / newPts.length
+            let minD = Infinity
+            for (const v of activeList) {
+              if (v.last_lat != null && v.last_lon != null) {
+                const d = Math.hypot(v.last_lat - cLat, v.last_lon - cLng)
+                if (d < minD) {
+                  minD = d
+                  matchedVeh = v
+                }
+              }
+            }
+          }
+
+          if (matchedVeh) {
+            setTargetVehicleId(matchedVeh.id)
+            selectVehicle(matchedVeh.id)
+            setNewZoneName(`Geofence - ${matchedVeh.vehicle_number} Perimeter`)
+            setNewZoneMandal(matchedVeh.current_lease_name || `${matchedVeh.assigned_district} Mining Sector`)
+            toast.success(`Geofence boundary captured around Vehicle ${matchedVeh.vehicle_number} (${matchedVeh.driver_name})!`, {
+              icon: '🛡️',
+              duration: 5000,
+            })
+          } else {
+            toast.success(`Successfully imported ${newPts.length} polygon boundary points from map drawing!`, {
+              icon: '📍',
+              duration: 5000,
+            })
+          }
+
+          setShowCreateModal(true)
         }
       } catch (err) {
         console.error('Error importing drawn coordinates:', err)
@@ -578,7 +682,52 @@ export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: Geofence
     const alertLon = geomMethod === 'BUFFER' ? centerLng : (points[0]?.lng ?? 78.4867)
     const alertLat = geomMethod === 'BUFFER' ? centerLat : (points[0]?.lat ?? 17.3850)
 
-    const designatedVeh = REAL_NETRADYNE_VEHICLES.find((v) => v.assigned_district.toLowerCase().includes(newZone.district.toLowerCase())) || REAL_NETRADYNE_VEHICLES[0]
+    const activeList = vehicles && vehicles.length > 0 ? vehicles : REAL_NETRADYNE_VEHICLES
+
+    let designatedVeh: Vehicle | undefined
+
+    // 1. Explicit target vehicle chosen in modal dropdown
+    if (targetVehicleId) {
+      designatedVeh = activeList.find((v) => v.id === targetVehicleId)
+    }
+
+    // 2. Currently selected vehicle in map store
+    if (!designatedVeh && selectedVehicleId) {
+      designatedVeh = activeList.find((v) => v.id === selectedVehicleId)
+    }
+
+    // 3. Spatially detected: vehicle inside the boundary polygon
+    if (!designatedVeh && geomMethod !== 'BUFFER' && points.length >= 3) {
+      designatedVeh = activeList.find((v) =>
+        v.last_lat != null && v.last_lon != null && isPointInPolygon({ lat: v.last_lat, lng: v.last_lon }, points)
+      )
+    }
+
+    // 4. Closest vehicle to perimeter center / alert point
+    if (!designatedVeh && activeList.length > 0) {
+      let minD = Infinity
+      for (const v of activeList) {
+        if (v.last_lat != null && v.last_lon != null) {
+          const d = Math.hypot(v.last_lat - alertLat, v.last_lon - alertLon)
+          if (d < minD) {
+            minD = d
+            designatedVeh = v
+          }
+        }
+      }
+    }
+
+    // 5. Fallback to district match or first vehicle
+    if (!designatedVeh) {
+      designatedVeh =
+        activeList.find((v) => v.assigned_district?.toLowerCase().includes(newZone.district.toLowerCase())) ||
+        activeList[0] ||
+        REAL_NETRADYNE_VEHICLES[0]
+    }
+
+    const vehAlertLon = designatedVeh.last_lon ?? alertLon
+    const vehAlertLat = designatedVeh.last_lat ?? alertLat
+    const alertDistrict = designatedVeh.assigned_district || newZone.district
 
     // 1. Dispatch real-time geofence live alert into the surveillance feed
     const newActivationAlert: GeofenceLiveAlert = {
@@ -590,9 +739,9 @@ export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: Geofence
       driverName: designatedVeh.driver_name,
       zoneId: newZone.id,
       zoneName: newZone.name,
-      district: newZone.district,
+      district: alertDistrict,
       speedKmh: newZone.speedLimitKmh || 40,
-      districtAuthorityNotified: `${newZone.district} DMO & Regional Vigilance Squad alerted`,
+      districtAuthorityNotified: `${alertDistrict} DMO & Regional Vigilance Squad alerted`,
       stateAuthorityNotified: 'Director of Mines & Geology (Central State Surveillance Ledger)',
       status: 'DELIVERED',
       netradyneDevice: designatedVeh.netradyne_device_id || netradyneFleetName,
@@ -607,12 +756,12 @@ export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: Geofence
       alert_type: 'GEOFENCE_ENTRY',
       alert_type_display: `Vehicle ${designatedVeh.vehicle_number}: Geofence Active in ${newZone.name}`,
       severity: 'HIGH',
-      alert_lon: alertLon,
-      alert_lat: alertLat,
+      alert_lon: vehAlertLon,
+      alert_lat: vehAlertLat,
       lease_id: newZone.id,
       mine_name: newZone.name,
       timestamp: new Date().toISOString(),
-      description: `Active Perimeter Established for Vehicle ${designatedVeh.vehicle_number} in "${newZone.name}" (${newZone.coordinatesSummary}). Speed limit: ${newZone.speedLimitKmh} km/h. Real-time telemetry breach alerts enabled for ${newZone.district}.`,
+      description: `Active Perimeter Established for Vehicle ${designatedVeh.vehicle_number} (${designatedVeh.driver_name}) in "${newZone.name}" (${newZone.coordinatesSummary}). Speed limit: ${newZone.speedLimitKmh} km/h. Real-time telemetry breach alerts enabled for ${alertDistrict}.`,
       is_resolved: false,
       resolved_by_name: null,
       resolved_at: null,
@@ -626,12 +775,13 @@ export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: Geofence
       eventType: 'ENTRY',
       zoneName: newZone.name,
       zoneType: newZone.typeDisplay,
-      district: newZone.district,
+      district: alertDistrict,
       speedKmh: newZone.speedLimitKmh || 40,
       timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      lon: alertLon,
-      lat: alertLat,
+      lon: vehAlertLon,
+      lat: vehAlertLat,
       severity: 'CRITICAL',
+      vehicleId: designatedVeh.id,
     })
 
     // 4. Instant custom alert toast banner
@@ -651,13 +801,16 @@ export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: Geofence
               <span className="font-mono text-white text-sm">{newZone.name}</span>
               <span className="text-[10px] text-emerald-400 font-semibold">RADAR ARMED</span>
             </div>
+            <div className="text-emerald-400 font-bold mt-1">
+              Target Vehicle: {designatedVeh.vehicle_number} · {designatedVeh.driver_name}
+            </div>
             <div className="text-slate-300 mt-0.5">
               Perimeter established with 24/7 automated telematics &amp; speed radar monitoring ({newZone.speedLimitKmh} km/h).
             </div>
             <div className="mt-2 pt-2 border-t border-slate-800 space-y-1 text-[11px]">
               <div className="flex items-center gap-1.5 text-emerald-300 font-semibold">
                 <CheckCircle2 size={12} className="text-emerald-400" />
-                <span>{newZone.district} Mining Officer (DMO) Surveillance Alert Dispatched</span>
+                <span>{alertDistrict} Mining Officer (DMO) Surveillance Alert Dispatched</span>
               </div>
             </div>
           </div>
@@ -668,7 +821,11 @@ export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: Geofence
 
   // Live simulation of vehicle entering or leaving mining zone
   const handleSimulateGeofenceEvent = (eventType: 'ENTRY' | 'EXIT') => {
-    const veh = REAL_NETRADYNE_VEHICLES[Math.floor(Math.random() * REAL_NETRADYNE_VEHICLES.length)] || REAL_NETRADYNE_VEHICLES[0]
+    const activeList = vehicles && vehicles.length > 0 ? vehicles : REAL_NETRADYNE_VEHICLES
+    const veh = (targetVehicleId ? activeList.find((v) => v.id === targetVehicleId) : null)
+      || (selectedVehicleId ? activeList.find((v) => v.id === selectedVehicleId) : null)
+      || activeList[Math.floor(Math.random() * activeList.length)]
+      || REAL_NETRADYNE_VEHICLES[0]
     const targetGeofence = geofences[0] || INITIAL_GEOFENCES[0]
 
     const newAlert: GeofenceLiveAlert = {
@@ -1594,6 +1751,62 @@ export default function GeofenceManager({ onOpenMap, onOpenMapToDraw }: Geofence
             </div>
 
             <form onSubmit={handleCreateGeofence} className="p-6 space-y-5 text-xs max-h-[82vh] overflow-y-auto">
+              {/* Target Monitored Vehicle Assignment */}
+              <div className="bg-slate-50 border border-slate-300 rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-700 flex items-center gap-1.5">
+                    <Truck size={14} className="text-gov-600" />
+                    <span>Target Fleet Vehicle / Unit:</span>
+                  </label>
+                  {targetVeh ? (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      Targeted: {targetVeh.vehicle_number} ({targetVeh.driver_name})
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-medium text-slate-500">
+                      Auto-detects nearest or active vehicle
+                    </span>
+                  )}
+                </div>
+                <select
+                  value={targetVehicleId ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value ? Number(e.target.value) : null
+                    setTargetVehicleId(val)
+                    if (val) {
+                      selectVehicle(val)
+                      const v = activeVehicles.find((veh) => veh.id === val)
+                      if (v) {
+                        if (!newZoneName || newZoneName.startsWith('Geofence - ')) {
+                          setNewZoneName(`Geofence - ${v.vehicle_number} Perimeter`)
+                        }
+                        if (v.last_lat != null && v.last_lon != null) {
+                          setCenterLat(v.last_lat)
+                          setCenterLng(v.last_lon)
+                        }
+                      }
+                    }
+                  }}
+                  className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-gov-600"
+                >
+                  <option value="">-- Auto-Detect (Nearest Monitored Vehicle) --</option>
+                  {activeVehicles.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.vehicle_number} · {v.driver_name} ({v.assigned_district} - {v.vehicle_type_display})
+                    </option>
+                  ))}
+                </select>
+                {targetVeh && (
+                  <div className="text-[11px] text-slate-600 flex items-center gap-2 pt-1 border-t border-slate-200 flex-wrap">
+                    <span>Driver: <strong>{targetVeh.driver_name}</strong></span>
+                    <span>·</span>
+                    <span>District: <strong>{targetVeh.assigned_district}</strong></span>
+                    <span>·</span>
+                    <span className="font-mono">GPS: {targetVeh.last_lat?.toFixed(5)}, {targetVeh.last_lon?.toFixed(5)}</span>
+                  </div>
+                )}
+              </div>
+
               {/* General Metadata */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="md:col-span-2">

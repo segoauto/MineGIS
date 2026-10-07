@@ -14,7 +14,7 @@ import type { Vehicle } from '../../types'
 
 interface FleetSurveillanceViewProps {
   onTrackVehicleOnMap: (vehicle: Vehicle) => void
-  onOpenGeofenceSetup: () => void
+  onOpenGeofenceSetup: (vehicle?: Vehicle) => void
 }
 
 export default function FleetSurveillanceView({
@@ -84,7 +84,7 @@ export default function FleetSurveillanceView({
 
           <div className="flex items-center gap-2">
             <button
-              onClick={onOpenGeofenceSetup}
+              onClick={() => onOpenGeofenceSetup()}
               className="flex items-center gap-1.5 px-3.5 py-2 bg-gov-600 hover:bg-gov-700 text-white rounded text-xs font-bold shadow-xs transition-colors cursor-pointer"
             >
               <ShieldAlert size={15} />
@@ -266,7 +266,10 @@ export default function FleetSurveillanceView({
                   </button>
                 </div>
                 <button
-                  onClick={onOpenGeofenceSetup}
+                  onClick={() => {
+                    selectVehicle(veh.id)
+                    onOpenGeofenceSetup(veh)
+                  }}
                   className="text-xs font-bold text-gov-600 hover:text-gov-800 flex items-center gap-1 cursor-pointer"
                 >
                   <ShieldAlert size={12} />

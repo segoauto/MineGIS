@@ -11,6 +11,7 @@ import { vehiclesApi } from '../../api/vehicles'
 import NetradyneVideoModal from '../fleet/NetradyneVideoModal'
 import clsx from 'clsx'
 import type { Vehicle, VehicleAlert } from '../../types'
+import toast from 'react-hot-toast'
 
 type VehicleTab = 'vehicles' | 'alerts'
 type VehicleFilter = 'all' | 'online' | 'alerts'
@@ -378,6 +379,19 @@ function VehicleDetail({ vehicleId, vehicles, recentAlerts, onOpenVideo }: {
           <span>View Live Camera Stream (Front Road &amp; Driver Cabin)</span>
         </button>
       )}
+
+      {/* Quick Geofence Perimeter Action */}
+      <button
+        onClick={() => {
+          useMapStore.getState().selectVehicle(vehicle.id)
+          useMapStore.getState().setDrawBoundaryMode('polygon', 'geofence')
+          toast.success(`Draw boundary perimeter polygon around Vehicle ${vehicle.vehicle_number} on the map.`, { icon: '🛡️' })
+        }}
+        className="w-full flex items-center justify-center gap-2 bg-gov-600 hover:bg-gov-700 text-white font-bold py-2 px-3 rounded-lg text-xs transition-all shadow-xs cursor-pointer"
+      >
+        <Shield size={14} className="text-white" />
+        <span>Establish Geofence Boundary for {vehicle.vehicle_number}</span>
+      </button>
 
       {/* Telemetry metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">

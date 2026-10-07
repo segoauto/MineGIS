@@ -498,7 +498,7 @@ export const useMapStore = create<MapStore>()(
       triggerGeofenceBreachDemo: (customZone, customVehicleNumber) => {
         const state = useMapStore.getState()
         const veh = (customVehicleNumber ? state.vehicles.find((v) => v.vehicle_number === customVehicleNumber) : null)
-          || state.vehicles.find((v) => v.id === 4134066)
+          || (state.selectedVehicleId ? state.vehicles.find((v) => v.id === state.selectedVehicleId) : null)
           || state.vehicles[0]
           || {
             id: 4134066,

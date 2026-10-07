@@ -55,6 +55,8 @@ export default function PortalLayout() {
     triggerMapRefresh,
     vehiclesVisible,
     setVehiclesVisible,
+    vehicles,
+    selectedVehicleId,
   } = useMapStore()
 
   const location = useLocation()
@@ -300,7 +302,7 @@ export default function PortalLayout() {
                 <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 bg-emerald-950/95 text-white px-5 py-2.5 rounded-lg shadow-2xl border border-emerald-500 flex items-center gap-3 animate-fade-in text-xs font-semibold backdrop-blur-xs">
                   <CheckCircle2 size={16} className="text-emerald-400" />
                   <span>
-                    ✓ Geofence polygon captured ({((drawnGeofenceGeoJSON as any)?.coordinates?.[0]?.length || 0)} vertices)!
+                    ✓ Geofence boundary captured {selectedVehicleId ? `for Vehicle ${vehicles.find((v) => v.id === selectedVehicleId)?.vehicle_number || ''}` : `(${((drawnGeofenceGeoJSON as any)?.coordinates?.[0]?.length || 0)} vertices)`}!
                   </span>
                   <button
                     onClick={() => handleSelectTab('geofences')}
@@ -347,7 +349,10 @@ export default function PortalLayout() {
           {activeTab === 'fleet' && (
             <FleetSurveillanceView
               onTrackVehicleOnMap={handleTrackVehicleOnMap}
-              onOpenGeofenceSetup={() => handleSelectTab('geofences')}
+              onOpenGeofenceSetup={(veh) => {
+                if (veh) selectVehicle(veh.id)
+                handleSelectTab('geofences')
+              }}
             />
           )}
 

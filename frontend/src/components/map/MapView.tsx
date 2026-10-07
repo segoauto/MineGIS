@@ -255,12 +255,61 @@ export default function MapView() {
             dataProjection: 'EPSG:4326',
             featureProjection: 'EPSG:3857',
           })
+          const rawCoords = (geojson as any)?.coordinates?.[0]
+          const allVehicles = useMapStore.getState().vehicles || []
+          let detectedVeh: any = null
+
+          if (Array.isArray(rawCoords) && rawCoords.length >= 3) {
+            const polygonPts = rawCoords.map((c: [number, number]) => ({ lat: c[1], lng: c[0] }))
+            // Check containment
+            detectedVeh = allVehicles.find((v) => {
+              if (v.last_lat == null || v.last_lon == null) return false
+              const x = v.last_lon, y = v.last_lat
+              let inside = false
+              for (let i = 0, j = polygonPts.length - 1; i < polygonPts.length; j = i++) {
+                const xi = polygonPts[i].lng, yi = polygonPts[i].lat
+                const xj = polygonPts[j].lng, yj = polygonPts[j].lat
+                const intersect = ((yi > y) !== (yj > y)) && (x < ((xj - xi) * (y - yi)) / (yj - yi) + xi)
+                if (intersect) inside = !inside
+              }
+              return inside
+            })
+
+            // If not strictly inside, check closest vehicle
+            if (!detectedVeh && allVehicles.length > 0) {
+              const cLat = polygonPts.reduce((acc, p) => acc + p.lat, 0) / polygonPts.length
+              const cLng = polygonPts.reduce((acc, p) => acc + p.lng, 0) / polygonPts.length
+              let minD = Infinity
+              for (const v of allVehicles) {
+                if (v.last_lat != null && v.last_lon != null) {
+                  const d = Math.hypot(v.last_lat - cLat, v.last_lon - cLng)
+                  if (d < minD) {
+                    minD = d
+                    detectedVeh = v
+                  }
+                }
+              }
+              if (minD > 0.08) {
+                detectedVeh = null
+              }
+            }
+          }
+
+          if (detectedVeh) {
+            useMapStore.getState().selectVehicle(detectedVeh.id)
+            toast.success(`Geofence boundary captured for Vehicle ${detectedVeh.vehicle_number} (${detectedVeh.driver_name})! Ready to configure in Geofence Console.`, {
+              icon: '🛡️',
+              duration: 5000,
+            })
+          } else {
+            toast.success('Geofence polygon captured! Ready to configure in Geofence Console.', {
+              icon: '🛡️',
+              duration: 4000,
+            })
+          }
+
           useMapStore.getState().setDrawnGeofenceGeoJSON(geojson as object)
           useMapStore.getState().setDrawBoundaryMode(false)
-          toast.success('Geofence polygon captured! Ready to configure in Geofence Console.', {
-            icon: '🛡️',
-            duration: 4000,
-          })
         } else if (drawBoundaryMode === 'point' && geometry.getType() === 'Point') {
           // Transform point back to EPSG:4326 for the form inputs
           const coords = (geometry as import('ol/geom/Point').default).clone().transform('EPSG:3857', 'EPSG:4326').getCoordinates()
